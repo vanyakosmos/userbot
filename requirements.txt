@@ -1,0 +1,3 @@
+easy_env==0.1.0
+telethon==1.0.3
+python-dotenv==0.7.1
