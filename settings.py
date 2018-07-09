@@ -4,6 +4,7 @@ from dotenv import find_dotenv, load_dotenv
 
 load_dotenv(find_dotenv())
 
+USERBOT_NAME = easy_env.get('USERBOT_NAME', 'userbot')
 API_ID = easy_env.get_int('API_ID')
 API_HASH = easy_env.get('API_HASH')
 USER_PHONE = easy_env.get('USER_PHONE')
