@@ -61,6 +61,8 @@ def prettify_image(image: Image):
 
 @contextlib.contextmanager
 def load_image(code: str, lang: Optional[str] = None):
+    if not code:
+        raise ValueError('Code block is empty.')
     for line in code.split('\n'):
         if len(line) > 150:
             raise ValueError('Line are to long.')
