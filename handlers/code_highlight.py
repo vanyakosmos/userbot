@@ -77,11 +77,11 @@ def load_image(code: str, lang: Optional[str] = None):
     image.close()
 
 
-async def send_image(event, code: str, lang: Optional[str] = None):
+async def send_image(event, action, code: str, lang: Optional[str] = None):
     try:
         with load_image(code, lang) as (file, link):
             await asyncio.gather(
-                event.respond(link, file=file),
+                action(link, file=file),
                 event.delete(),
             )
     except ValueError:
@@ -91,14 +91,14 @@ async def send_image(event, code: str, lang: Optional[str] = None):
 async def highlight_own(event):
     code = event.pattern_match.group(1)
     code = code.strip()
-    await send_image(event, code)
+    await send_image(event, event.respond, code)
 
 
 async def highlight_reply(event: Union[Message, NewMessage.Event]):
     lang = event.pattern_match.group(1)
     reply_msg = await event.get_reply_message()  # type: Message
     code = reply_msg.raw_text
-    await send_image(event, code, lang)
+    await send_image(event, reply_msg.reply, code, lang)
 
 
 def main():
