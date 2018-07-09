@@ -15,6 +15,8 @@ outgoing_handlers = [
     (handlers.sub, r's/(.*)/(.*)/?'),
     (handlers.boop, r'boopv?'),
     (handlers.timer, r'timer (\d+)'),
+    (handlers.highlight_own, r'code([\w\W]+)'),
+    (handlers.highlight_reply, r'high(\w+)?'),
 ]
 for callback, pattern in outgoing_handlers:
     client.add_event_handler(callback, NewMessage(outgoing=True, pattern=pattern))
