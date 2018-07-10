@@ -1,3 +1,4 @@
+from .aaa import aaa
 from .boop import boop
 from .calculator import calculator
 from .code_highlight import highlight_own, highlight_reply
