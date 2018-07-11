@@ -18,6 +18,7 @@ outgoing_handlers = [
     (handlers.highlight_own, r'code([\w\W]+)'),
     (handlers.highlight_reply, r'^high(\w+)?$'),
     (handlers.aaa, f'-a(\d+)? (.+)'),
+    (handlers.magic, f'-m(\d+)? (.+)'),
 ]
 
 nou_pattern = "|".join(NOU_LIST)

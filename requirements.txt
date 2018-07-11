@@ -3,3 +3,4 @@ telethon==1.0.3
 python-dotenv==0.7.1
 pillow==5.2.0
 pygments==2.2.0
+numpy==1.13.3
