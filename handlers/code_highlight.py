@@ -97,7 +97,8 @@ def get_code_image(code: str, lang: Optional[str] = None, line_numbers=True) -> 
 
 
 @contextlib.contextmanager
-def load_image(code: str, lang: Optional[str] = None, line_numbers=True):
+def load_image(code: str, lang: Optional[str] = None,
+               line_numbers=True, add_carbon_link=True):
     if not code:
         raise ValueError('Code block is empty.')
     for line in code.split('\n'):
@@ -109,7 +110,7 @@ def load_image(code: str, lang: Optional[str] = None, line_numbers=True):
     file.seek(0)
     file.name = 'foo.png'
     link = build_carbon_url(code, lang)
-    link = f'[carbon]({link})' if len(link) < 1000 else None
+    link = f'[carbon]({link})' if len(link) < 1000 and add_carbon_link else None
     yield file, link
     file.close()
     image.close()
@@ -117,14 +118,15 @@ def load_image(code: str, lang: Optional[str] = None, line_numbers=True):
 
 async def send_image(event, action, code: str,
                      lang: Optional[str] = None,
-                     line_numbers=True):
+                     line_numbers=True, add_carbon_link=True):
     try:
-        with load_image(code, lang, line_numbers) as (file, link):
+        with load_image(code, lang, line_numbers, add_carbon_link) as (file, link):
             await asyncio.gather(
-                action(link, file=file),
+                action(link, file=file) if link else action(file=file),
                 event.delete(),
             )
-    except ValueError:
+    except ValueError as e:
+        print('error:', e)
         await event.delete()
 
 
@@ -136,11 +138,13 @@ async def highlight_code(event):
 
 async def highlight_reply(event: Union[Message, NewMessage.Event]):
     line_numbers = event.pattern_match.group(1) is not None
-    lang = event.pattern_match.group(2)
+    add_carbon_link = event.pattern_match.group(2) is not None
+    lang = event.pattern_match.group(3)
     reply_msg = await event.get_reply_message()  # type: Message
     if reply_msg:
         code = reply_msg.raw_text
-        await send_image(event, reply_msg.reply, code, lang, line_numbers)
+        await send_image(event, reply_msg.reply, code, lang,
+                         line_numbers, add_carbon_link)
 
 
 def main():
