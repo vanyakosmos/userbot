@@ -126,7 +126,7 @@ async def send_image(event, action, code: str, lang: Optional[str] = None):
         await event.delete()
 
 
-async def highlight_own(event):
+async def highlight_code(event):
     code = event.pattern_match.group(1)
     code = code.strip()
     await send_image(event, event.respond, code)

@@ -86,7 +86,7 @@ async def magic(event):
     await rolled_text(event, text, count)
 
 
-async def running_line(event, phrase: str, count: int):
+async def marquee_runner(event, phrase: str, count: int):
     pad = '.'
     phrase = phrase.upper()
     phrase = re.sub('\s', pad, phrase)
@@ -104,10 +104,16 @@ async def running_line(event, phrase: str, count: int):
         )
 
 
-async def aaa(event):
+async def marquee(event):
     count = int(event.pattern_match.group(1) or '3')
     text = event.pattern_match.group(2)
-    await running_line(event, text, count)
+    await marquee_runner(event, text, count)
+    await event.edit(text)
+
+
+async def widener(event):
+    text = event.raw_text
+    text = ''.join(map(widemap.get, text))
     await event.edit(text)
 
 
