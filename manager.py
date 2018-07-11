@@ -41,7 +41,7 @@ class Manager:
         # commands
         commands = [
             (self.toggle, '-toggle'),
-            (self.handlers_status, '-stat'),
+            (self.handlers_status, '-stat(p)?'),
             (self.to_outgoing, '-too ([\w_]+)'),
             (self.to_incoming, '-toi ([\w_]+)'),
             (self.to_removed, '-tor ([\w_]+)'),
@@ -114,30 +114,38 @@ class Manager:
     async def to_removed(self, event):
         await self.migrate_callback(event, HandlerType.removed)
 
+    def add_line(self, lines: list, handler: Handler, add_pattern=False):
+        if add_pattern:
+            text = f"` > {handler.name:20s} : {handler.pattern}`"
+        else:
+            text = f"` > {handler.name}`"
+        lines.append(text)
+
     async def handlers_status(self, event):
+        add_pattern = event.pattern_match.group(1) is not None
         outgoing = []
         incoming = []
         removed = []
         for handler in self.handlers.values():
             if handler.type is HandlerType.outgoing:
-                outgoing.append((handler.callback, handler.pattern))
+                outgoing.append(handler)
             elif handler.type is HandlerType.incoming:
-                incoming.append((handler.callback, handler.pattern))
+                incoming.append(handler)
             elif handler.type is HandlerType.removed:
-                removed.append((handler.callback, handler.pattern))
+                removed.append(handler)
 
         lines = [
             '✅ Userbot is up' if self.userbot_up else '🚨 Userbot is down',
             '\n**outgoing handlers:**',
         ]
-        for callback, handler in outgoing:
-            lines.append(f"` > {callback.__name__}`")
+        for handler in outgoing:
+            self.add_line(lines, handler, add_pattern)
         lines.append('\n**incoming handlers:**')
-        for callback, handler in incoming:
-            lines.append(f"` > {callback.__name__}`")
+        for handler in incoming:
+            self.add_line(lines, handler, add_pattern)
         lines.append('\n**removed handlers:**')
-        for callback, handler in removed:
-            lines.append(f"` > {callback.__name__}`")
+        for handler in removed:
+            self.add_line(lines, handler, add_pattern)
         await event.edit('\n'.join(lines))
         await asyncio.sleep(15)
         await event.delete()
