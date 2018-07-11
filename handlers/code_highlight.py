@@ -33,13 +33,13 @@ def get_lexer(lang=None, code=None):
     raise ValueError("Can't setup lexer.")
 
 
-def generate_code_image(code: str, lang: Optional[str] = None):
+def generate_code_image(code: str, lang: Optional[str] = None, line_numbers=True):
     lexer = get_lexer(code=code, lang=lang)
     formatter = ImageFormatter(
         image_format="PNG",
         font_size=32,
         image_pad=30,
-        line_numbers=True,
+        line_numbers=line_numbers,
         line_number_bg='#22231e',
         line_number_fg='#ddd',
         line_number_bold=False,
@@ -89,21 +89,21 @@ def add_shadow(im: Image.Image, pad=100):
     return back
 
 
-def get_code_image(code: str, lang: Optional[str] = None) -> Image.Image:
-    image = generate_code_image(code, lang)
+def get_code_image(code: str, lang: Optional[str] = None, line_numbers=True) -> Image.Image:
+    image = generate_code_image(code, lang, line_numbers)
     image = add_corners(image, 10)
     image = add_shadow(image)
     return image
 
 
 @contextlib.contextmanager
-def load_image(code: str, lang: Optional[str] = None):
+def load_image(code: str, lang: Optional[str] = None, line_numbers=True):
     if not code:
         raise ValueError('Code block is empty.')
     for line in code.split('\n'):
         if len(line) > 150:
             raise ValueError('Line are to long.')
-    image = get_code_image(code, lang)
+    image = get_code_image(code, lang, line_numbers)
     file = BytesIO()
     image.save(file, 'PNG')
     file.seek(0)
@@ -115,9 +115,11 @@ def load_image(code: str, lang: Optional[str] = None):
     image.close()
 
 
-async def send_image(event, action, code: str, lang: Optional[str] = None):
+async def send_image(event, action, code: str,
+                     lang: Optional[str] = None,
+                     line_numbers=True):
     try:
-        with load_image(code, lang) as (file, link):
+        with load_image(code, lang, line_numbers) as (file, link):
             await asyncio.gather(
                 action(link, file=file),
                 event.delete(),
@@ -133,10 +135,12 @@ async def highlight_code(event):
 
 
 async def highlight_reply(event: Union[Message, NewMessage.Event]):
-    lang = event.pattern_match.group(1)
+    line_numbers = event.pattern_match.group(1) is not None
+    lang = event.pattern_match.group(2)
     reply_msg = await event.get_reply_message()  # type: Message
-    code = reply_msg.raw_text
-    await send_image(event, reply_msg.reply, code, lang)
+    if reply_msg:
+        code = reply_msg.raw_text
+        await send_image(event, reply_msg.reply, code, lang, line_numbers)
 
 
 def main():
