@@ -4,10 +4,13 @@ from telethon import TelegramClient
 
 import handlers
 from manager import Manager
+from persistence import load_session_file, save_before_term
 from settings import API_HASH, API_ID, NOU_LIST, USERBOT_NAME, USER_PASSWORD, USER_PHONE
 
 
 logging.basicConfig(level=logging.WARNING)
+save_before_term()
+load_session_file()
 client = TelegramClient(USERBOT_NAME, API_ID, API_HASH)
 
 outgoing_handlers = [
