@@ -132,9 +132,13 @@ async def send_image(event, action, code: str,
 
 
 async def highlight_code(event):
-    code = event.pattern_match.group(1)
+    line_numbers = event.pattern_match.group(1) is not None
+    add_carbon_link = event.pattern_match.group(2) is not None
+    code = event.pattern_match.group(3)
     code = code.strip()
-    await send_image(event, event.respond, code)
+    await send_image(event, event.respond, code,
+                     line_numbers=line_numbers,
+                     add_carbon_link=add_carbon_link)
 
 
 async def highlight_reply(event: Union[Message, NewMessage.Event]):

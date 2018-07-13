@@ -18,7 +18,7 @@ outgoing_handlers = [
     (handlers.sub, r'-s/(.*)/(.*)/?'),
     (handlers.boop, r'-boopv?(\d)?'),
     (handlers.timer, r'-t (\d+)'),
-    (handlers.highlight_code, r'-c([\w\W]+)'),
+    (handlers.highlight_code, r'-c(l)?(c)? ([\w\W]+)'),
     (handlers.highlight_reply, r'-h(l)?(c)?\s?(\w+)?'),
     (handlers.marquee, f'-a(\d+)? (.+)'),
     (handlers.magic, f'-m(\d+)? (.+)'),
