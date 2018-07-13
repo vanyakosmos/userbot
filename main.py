@@ -15,8 +15,8 @@ client = TelegramClient(USERBOT_NAME, API_ID, API_HASH)
 
 outgoing_handlers = [
     (handlers.calculator, r'-e (.+)'),
-    (handlers.sub, r's/(.*)/(.*)/?'),
-    (handlers.boop, r'boopv?(\d)?'),
+    (handlers.sub, r'-s/(.*)/(.*)/?'),
+    (handlers.boop, r'-boopv?(\d)?'),
     (handlers.timer, r'-t (\d+)'),
     (handlers.highlight_code, r'-c([\w\W]+)'),
     (handlers.highlight_reply, r'-h(l)?(c)?\s?(\w+)?'),
@@ -31,7 +31,7 @@ incoming_handlers = [
 ]
 
 trashy_handlers = [
-    (handlers.widener, '[^-][\w\W]*'),
+    (handlers.widener, f'[^-][0-9a-zA-Z\s_\-\'@^&*%$#.,/+()\[\]"]+'),
 ]
 
 manager = Manager(client)

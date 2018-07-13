@@ -113,7 +113,7 @@ async def marquee(event):
 
 async def widener(event):
     text = event.raw_text
-    text = ''.join(map(widemap.get, text))
+    text = ''.join(map(lambda x: widemap.get(x, x), text))
     await event.edit(text)
 
 
