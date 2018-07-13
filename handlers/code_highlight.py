@@ -38,6 +38,7 @@ def generate_code_image(code: str, lang: Optional[str] = None, line_numbers=True
     formatter = ImageFormatter(
         image_format="PNG",
         font_size=32,
+        font_name='Courier New',
         image_pad=30,
         line_numbers=line_numbers,
         line_number_bg='#22231e',
