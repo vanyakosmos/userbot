@@ -1,5 +1,6 @@
 import asyncio
 import re
+from urllib.parse import quote
 
 import numpy as np
 from numpy.random import choice
@@ -115,6 +116,23 @@ async def widener(event):
     text = event.raw_text
     text = ''.join(map(lambda x: widemap.get(x, x), text))
     await event.edit(text)
+
+
+async def google(event):
+    command = event.raw_text.split()[0]
+    let_me = 'l' in command
+    images = 'i' in command
+    text = event.pattern_match.group(1)
+    url_text = quote(text)
+    if let_me:
+        url = 'http://lmgtfy.com/?q=' + url_text
+    elif images:
+        url = 'https://google.com/search?tbm=isch&q=' + url_text
+    else:
+        url = 'https://google.com/search?q=' + url_text
+
+    msg = f'[{text}]({url})'
+    await event.edit(msg, link_preview=False)
 
 
 def main():

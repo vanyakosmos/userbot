@@ -22,6 +22,7 @@ outgoing_handlers = [
     (handlers.highlight_reply, r'-h(l)?(c)?\s?(\w+)?'),
     (handlers.marquee, f'-a(\d+)? (.+)'),
     (handlers.magic, f'-m(\d+)? (.+)'),
+    (handlers.google, f'-gl?i? (.+)'),
 ]
 
 nou_pattern = "|".join(NOU_LIST)

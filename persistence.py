@@ -18,6 +18,9 @@ def create_session_file():
 
 
 def save_session_file():
+    if not REDIS_URL:
+        print(f"Session not saved.")
+        return
     with open(USERBOT_NAME + '.session', 'rb') as f:
         session = f.read()
     client = redis.Redis.from_url(REDIS_URL)
@@ -26,6 +29,9 @@ def save_session_file():
 
 
 def load_session_file():
+    if not REDIS_URL:
+        print(f"Session not loaded.")
+        return
     client = redis.Redis.from_url(REDIS_URL)
     session = client.get(SESSION_KEY)
     if not session:
