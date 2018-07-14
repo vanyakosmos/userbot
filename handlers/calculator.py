@@ -1,3 +1,4 @@
+import asyncio
 import re
 from typing import Union
 
@@ -7,7 +8,7 @@ from telethon.tl.custom import Message
 
 async def calculator(event: Union[Message, NewMessage.Event]):
     expression = event.pattern_match.group(1)
-    expression = re.sub(r'[^\d+\-*/().,%&|{}\[\]]', '', expression)
+    expression = re.sub(r'[^\d+\-*/().,%&|{}\[\]\s]', '', expression)
 
     if not 0 < len(expression) < 100:
         await event.reply("Bad expression.")
@@ -16,8 +17,11 @@ async def calculator(event: Union[Message, NewMessage.Event]):
         answer = eval(expression)
         if answer == set():
             answer = '{}'
-        await event.edit(f'```{expression}\n> {answer}```')
-        # await event.reply(f'`{expression} = {answer}`')
+        msg = f'```{expression}\n> {answer}```'
     except Exception as e:
         print(expression, e)
-        await event.edit(f"`{expression}`\nBad expression.")
+        msg = f"`{expression}`\nBad expression."
+    await asyncio.gather(
+        event.delete(),
+        event.respond(msg),
+    )
