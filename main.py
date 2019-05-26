@@ -16,12 +16,11 @@ logger = logging.getLogger(__name__)
 save_before_term()
 load_session_file()
 
-client = TelegramClient(USERBOT_NAME, API_ID, API_HASH)
-client.parse_mode = 'md'
 
-
-def setup():
+def setup(client: TelegramClient):
     m = Manager(client)
+
+    m.add_handler(handlers.handle_help, NewMessage(cmd='', outgoing=True, parser=m.parser))
 
     with m.add_command('e', "evaluate expression", handlers.calculator) as p:
         p.add_argument('expression', action=MergeAction)
@@ -65,9 +64,17 @@ def setup():
     m.register_handlers()
 
 
-if __name__ == '__main__':
+def main():
+    client = TelegramClient(USERBOT_NAME, API_ID, API_HASH)
+    client.parse_mode = 'md'
+
     logger.info("setting up...")
-    setup()
+    setup(client)
+
     logger.info("starting...")
     client.start(phone=USER_PHONE, password=USER_PASSWORD)
     client.run_until_disconnected()
+
+
+if __name__ == '__main__':
+    main()

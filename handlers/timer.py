@@ -2,7 +2,7 @@ import asyncio
 import re
 from time import time
 
-from .utils import handle_help, Event
+from .utils import Event
 
 
 def format_time(sec: float):
@@ -13,9 +13,6 @@ def format_time(sec: float):
 
 
 async def timer(event: Event):
-    if await handle_help(event):
-        return
-
     args = event.pattern_match
     t = args.time
     message = args.message

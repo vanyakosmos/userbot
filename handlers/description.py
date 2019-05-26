@@ -3,14 +3,11 @@ import random
 
 from telethon.tl.functions.account import UpdateProfileRequest
 
-from .utils import Event, handle_help
+from .utils import Event
 from settings import STATUS
 
 
 async def loop_description(event: Event):
-    if await handle_help(event):
-        return
-
     status = not STATUS['desc']
     STATUS['desc'] = status
     status_text = 'start' if status else 'end'

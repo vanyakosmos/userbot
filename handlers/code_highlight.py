@@ -9,7 +9,7 @@ from pygments.formatters.img import ImageFormatter
 from pygments.lexers import get_lexer_by_name, guess_lexer
 from telethon.tl.custom import Message
 
-from .utils import Event, handle_help
+from .utils import Event
 from misc.base16monokai import MonokaiDark
 
 
@@ -131,9 +131,6 @@ async def send_image(
 
 
 async def highlight_code(event: Event):
-    if await handle_help(event):
-        return
-
     args = event.pattern_match
     reply_msg = await event.get_reply_message()  # type: Message
     if reply_msg:

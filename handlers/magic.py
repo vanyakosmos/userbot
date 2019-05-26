@@ -5,7 +5,7 @@ from urllib.parse import quote
 import numpy as np
 from numpy.random import choice
 
-from handlers.utils import Event, handle_help
+from handlers.utils import Event
 
 widemap = dict((chr(i), chr(i + 0xFF00 - 0x20)) for i in range(0x21, 0x7F))
 widemap[chr(0x20)] = chr(0x3000)  # IDEOGRAPHIC SPACE
@@ -90,8 +90,6 @@ async def rolled_text(event, text: str, count=3, wide=False):
 
 
 async def magic(event: Event):
-    if await handle_help(event):
-        return
     args = event.pattern_match
     await rolled_text(event, args.text, args.count, args.wide)
 
@@ -114,8 +112,6 @@ async def marquee_runner(event, phrase: str, count: int):
 
 
 async def marquee(event: Event):
-    if await handle_help(event):
-        return
     args = event.pattern_match
     await marquee_runner(event, args.text, args.count)
     await event.edit(args.text)
@@ -128,9 +124,6 @@ async def widener(event):
 
 
 async def google(event: Event):
-    if await handle_help(event):
-        return
-
     args = event.pattern_match
     if args.let_me:
         base_url = f'http://lmgtfy.com/?q='

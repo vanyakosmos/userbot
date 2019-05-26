@@ -19,5 +19,4 @@ class MergeAction(argparse.Action):
         super().__init__(*args, **kwargs, nargs='+', type=str)
 
     def __call__(self, parser, namespace, values, option_string=None):
-        print('values', values)
         setattr(namespace, self.dest, ' '.join(values))

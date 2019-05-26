@@ -1,13 +1,13 @@
 import asyncio
+import logging
 import re
 
-from .utils import handle_help, Event
+from .utils import Event
+
+logger = logging.getLogger(__name__)
 
 
 async def calculator(event: Event):
-    if await handle_help(event):
-        return
-
     expression = re.sub(r'[^\d+\-*/().,%&|{}\[\]\s]', '', event.pattern_match.expression)
 
     if not 0 < len(expression) < 100:
@@ -19,7 +19,8 @@ async def calculator(event: Event):
             answer = '{}'
         msg = f'```{expression}\n> {answer}```'
     except Exception as e:
-        print(expression, e)
+        logger.error(f"error in expression: {expression}")
+        logger.exception(e)
         msg = f"`{expression}`\nBad expression."
     await asyncio.gather(
         event.delete(),

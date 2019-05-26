@@ -11,34 +11,13 @@ class NewMessage(events.NewMessage):
     def __init__(self, *args, parser=None, cmd=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.parser = parser
-        if cmd:
+        if cmd is not None:
             self.cmd = re.compile(f">\\s*({cmd}.*)").match
         else:
             self.cmd = None
 
-    def _message_filter_event(self, event):
-        if self._no_check:
-            return event
-
-        if self.incoming and event.message.out:
-            return
-        if self.outgoing and not event.message.out:
-            return
-        if self.forwards is not None:
-            if bool(self.forwards) != bool(event.message.fwd_from):
-                return
-
-        if self.from_users is not None:
-            if event.message.from_id not in self.from_users:
-                return
-
-        if self.pattern:
-            match = self.pattern(event.message.message or '')
-            if not match:
-                return
-            event.pattern_match = match
-
-        if self.cmd:
+    def filter(self, event):
+        if self.cmd is not None:
             match = self.cmd(event.message.message or '')
             if not match:
                 return
@@ -48,7 +27,7 @@ class NewMessage(events.NewMessage):
                 return
             event.pattern_match = args
 
-        return self._filter_event(event)
+        return super().filter(event)
 
 
 class Manager:
@@ -58,19 +37,18 @@ class Manager:
 
         self.parser = ArgumentParser(prog='USERBOT', conflict_handler='resolve')
         self.parser.add_argument('-h', '--help', action=HelpAction)
-        self.parser.add_argument('-t', '--toggle', action=HelpAction)
         self.subparsers = self.parser.add_subparsers()
 
         client.add_event_handler(
             self.handle_help,
-            NewMessage(outgoing=True, pattern='(-h|help)', parser=self.parser),
+            NewMessage(outgoing=True, pattern=r'>\s*(-h|help)', parser=self.parser),
         )
         client.add_event_handler(
             self.handle_toggle,
-            NewMessage(outgoing=True, pattern='(t|toggle)', parser=self.parser),
+            NewMessage(outgoing=True, pattern=r'>\s*(-t|toggle)', parser=self.parser),
         )
 
-    def add_handler(self, callback, event):
+    def add_handler(self, callback, event: NewMessage):
         return self.handlers.append((callback, event))
 
     @contextmanager
