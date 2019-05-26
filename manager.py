@@ -1,172 +1,109 @@
-import asyncio
-from enum import Enum, auto
-from typing import Dict
+import re
+from contextlib import contextmanager
 
-from telethon import TelegramClient
-from telethon.events import NewMessage
+from telethon import TelegramClient, events
 
+from argsparse_extra import ArgumentParser, HelpAction
 from settings import USERBOT_NAME
 
 
-class Manager2:
-    def __init__(self, client: TelegramClient):
-        self.client = client
+class NewMessage(events.NewMessage):
+    def __init__(self, *args, parser=None, cmd=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.parser = parser
+        if cmd:
+            self.cmd = re.compile(f">\\s*({cmd}.*)").match
+        else:
+            self.cmd = None
 
+    def _message_filter_event(self, event):
+        if self._no_check:
+            return event
 
-class HandlerType(Enum):
-    outgoing = auto()
-    incoming = auto()
-    removed = auto()
+        if self.incoming and event.message.out:
+            return
+        if self.outgoing and not event.message.out:
+            return
+        if self.forwards is not None:
+            if bool(self.forwards) != bool(event.message.fwd_from):
+                return
 
-    def __str__(self):
-        return self._name_
+        if self.from_users is not None:
+            if event.message.from_id not in self.from_users:
+                return
 
+        if self.pattern:
+            match = self.pattern(event.message.message or '')
+            if not match:
+                return
+            event.pattern_match = match
 
-class Handler:
-    def __init__(self, callback, pattern: str, type=HandlerType.removed):
-        self.name = callback.__name__
-        self.callback = callback
-        self.pattern = pattern
-        self.type = type
+        if self.cmd:
+            match = self.cmd(event.message.message or '')
+            if not match:
+                return
+            text = match[1]
+            args, _ = self.parser.parse_known_args(text.split())
+            if not args:
+                return
+            event.pattern_match = args
 
-    @property
-    def pack(self):
-        return self.callback, self.pattern
-
-    @property
-    def strict_pattern(self):
-        return f'^{self.pattern}$'
+        return self._filter_event(event)
 
 
 class Manager:
     def __init__(self, client: TelegramClient):
-        self.handlers = {}  # type: Dict[str, Handler]
-        self.userbot_up = True
         self.client = client
-        # commands
-        commands = [
-            (self.toggle, r'-toggle'),
-            (self.handlers_status, r'-stat(p)?'),
-            (self.to_outgoing, r'-too ([\w_]+)'),
-            (self.to_incoming, r'-toi ([\w_]+)'),
-            (self.to_removed, r'-tor ([\w_]+)'),
-        ]
-        self.register_outgoing(*commands, add=False)
+        self.handlers = []
 
-    def add_outgoing_handler(self, handler: Handler, add=True):
-        handler.type = HandlerType.outgoing
-        self.client.add_event_handler(handler.callback,
-                                      NewMessage(outgoing=True, pattern=handler.strict_pattern))
-        if add:
-            self.handlers[handler.name] = handler
+        self.parser = ArgumentParser(prog='USERBOT', conflict_handler='resolve')
+        self.parser.add_argument('-h', '--help', action=HelpAction)
+        self.parser.add_argument('-t', '--toggle', action=HelpAction)
+        self.subparsers = self.parser.add_subparsers()
 
-    def add_incoming_handler(self, handler: Handler, add=True):
-        handler.type = HandlerType.incoming
-        self.client.add_event_handler(handler.callback,
-                                      NewMessage(pattern=handler.strict_pattern))
-        if add:
-            self.handlers[handler.name] = handler
+        client.add_event_handler(
+            self.handle_help,
+            NewMessage(outgoing=True, pattern='(-h|help)', parser=self.parser),
+        )
+        client.add_event_handler(
+            self.handle_toggle,
+            NewMessage(outgoing=True, pattern='(t|toggle)', parser=self.parser),
+        )
 
-    def register_trashy(self, *raw_handlers):
-        for callback, pattern in raw_handlers:
-            handler = Handler(callback, pattern)
-            self.handlers[handler.name] = handler
+    def add_handler(self, callback, event):
+        return self.handlers.append((callback, event))
 
-    def register_outgoing(self, *raw_handlers, add=True):
-        for callback, pattern in raw_handlers:
-            handler = Handler(callback, pattern)
-            self.add_outgoing_handler(handler, add)
-
-    def register_incoming(self, *handlers):
-        for callback, pattern in handlers:
-            handler = Handler(callback, pattern)
-            self.add_incoming_handler(handler)
-
-    def unregister_handlers(self):
-        for handler in self.handlers.values():
-            self.client.remove_event_handler(handler.callback)
+    @contextmanager
+    def add_command(self, name, help_text, callback, outgoing=True, incoming=False, **kwargs):
+        sub_parser = self.subparsers.add_parser(name, help=help_text, conflict_handler='resolve')
+        sub_parser.add_argument('-h', '--help', action=HelpAction)
+        yield sub_parser
+        self.handlers.append((
+            callback,
+            NewMessage(
+                cmd=name, parser=self.parser, outgoing=outgoing, incoming=incoming, **kwargs
+            )
+        ))
 
     def register_handlers(self):
-        for handler in self.handlers.values():
-            if handler.type == HandlerType.outgoing:
-                self.add_outgoing_handler(handler, add=False)
-            elif handler.type == HandlerType.incoming:
-                self.add_incoming_handler(handler, add=False)
+        for c, e in self.handlers:
+            self.client.add_event_handler(c, e)
 
-    async def migrate_callback(self, event, to_type: HandlerType):
-        handler_name = event.pattern_match.group(1)
-        if handler_name not in self.handlers:
-            return
-        handler = self.handlers[handler_name]
-        self.client.remove_event_handler(handler.callback)
-        if to_type == HandlerType.outgoing:
-            self.add_outgoing_handler(handler, add=False)
-        elif to_type == HandlerType.incoming:
-            self.add_incoming_handler(handler, add=False)
-        else:
-            handler.type = HandlerType.removed
+    def remove_handlers(self):
+        for c, e in self.handlers:
+            self.client.remove_event_handler(c, e)
 
-        await event.edit(f'✅ moved **{handler.name}** to **{handler.type}** handlers')
-        await asyncio.sleep(5)
-        await event.delete()
+    async def handle_help(self, event):
+        text = self.parser.format_help()
+        text = f"```{text}```"
+        await event.reply(text)
 
-    async def to_outgoing(self, event):
-        await self.migrate_callback(event, HandlerType.outgoing)
-
-    async def to_incoming(self, event):
-        await self.migrate_callback(event, HandlerType.incoming)
-
-    async def to_removed(self, event):
-        await self.migrate_callback(event, HandlerType.removed)
-
-    def add_line(self, lines: list, handler: Handler, add_pattern=False):
-        if add_pattern:
-            text = f"` > {handler.name:20s} : {handler.pattern}`"
-        else:
-            text = f"` > {handler.name}`"
-        lines.append(text)
-
-    async def handlers_status(self, event):
-        add_pattern = event.pattern_match.group(1) is not None
-        outgoing = []
-        incoming = []
-        removed = []
-        for handler in self.handlers.values():
-            if handler.type is HandlerType.outgoing:
-                outgoing.append(handler)
-            elif handler.type is HandlerType.incoming:
-                incoming.append(handler)
-            elif handler.type is HandlerType.removed:
-                removed.append(handler)
-
-        lines = [
-            '✅ Userbot is up' if self.userbot_up else '🚨 Userbot is down',
-            '\n**outgoing handlers:**',
-        ]
-        for handler in outgoing:
-            self.add_line(lines, handler, add_pattern)
-        lines.append('\n**incoming handlers:**')
-        for handler in incoming:
-            self.add_line(lines, handler, add_pattern)
-        lines.append('\n**removed handlers:**')
-        for handler in removed:
-            self.add_line(lines, handler, add_pattern)
-        await event.edit('\n'.join(lines))
-        await asyncio.sleep(15)
-        await event.delete()
-
-    async def toggle(self, event):
-        if self.userbot_up:
-            self.unregister_handlers()
-            message = f"🚨 Userbot '{USERBOT_NAME}' is down"
+    async def handle_toggle(self, event):
+        first = self.handlers[0]
+        toggle = first in self.client.list_event_handlers()
+        if toggle:
+            self.remove_handlers()
         else:
             self.register_handlers()
-            message = f"✅ Userbot '{USERBOT_NAME}' is up"
-
-        self.userbot_up = not self.userbot_up
-        alert, _ = await asyncio.gather(
-            event.respond(message),
-            event.delete(),
-        )
-        await asyncio.sleep(2)
-        await alert.delete()
+        toggle_text = 'off' if toggle else 'on'
+        await event.reply(f"{USERBOT_NAME} is {toggle_text}")
