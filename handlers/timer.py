@@ -2,6 +2,8 @@ import asyncio
 import re
 from time import time
 
+from .utils import handle_help, Event
+
 
 def format_time(sec: float):
     sec = int(sec)
@@ -10,17 +12,15 @@ def format_time(sec: float):
     return f'{m:02d}:{s:02d}'
 
 
-async def timer(event):
-    expr = event.pattern_match.group(1).strip().split(maxsplit=1)
+async def timer(event: Event):
+    if await handle_help(event):
+        return
 
-    if len(expr) == 2:
-        t = expr[0]
-        name = expr[1]
-    else:
-        t = expr[0]
-        name = None
+    args = event.pattern_match
+    t = args.time
+    message = args.message
 
-    if not re.match('\d+', t):
+    if not re.match(r'\d+', t):
         return
     sec = int(t)
     if sec > 60 * 60:
@@ -40,11 +40,9 @@ async def timer(event):
                 asyncio.sleep(1),
             )
             text = new_text
-    if name:
-        msg = name
-    else:
-        msg = f"🔥 Time's up! {sec}s"
+    if not message:
+        message = f"🔥 Time's up! {sec}s"
     await asyncio.gather(
         event.delete(),
-        event.respond(msg),
+        event.respond(message),
     )

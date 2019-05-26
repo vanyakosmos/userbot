@@ -1,14 +1,14 @@
 import asyncio
 import re
-from typing import Union
 
-from telethon.events import NewMessage
-from telethon.tl.custom import Message
+from .utils import handle_help, Event
 
 
-async def calculator(event: Union[Message, NewMessage.Event]):
-    expression = event.pattern_match.group(1)
-    expression = re.sub(r'[^\d+\-*/().,%&|{}\[\]\s]', '', expression)
+async def calculator(event: Event):
+    if await handle_help(event):
+        return
+
+    expression = re.sub(r'[^\d+\-*/().,%&|{}\[\]\s]', '', event.pattern_match.expression)
 
     if not 0 < len(expression) < 100:
         await event.reply("Bad expression.")

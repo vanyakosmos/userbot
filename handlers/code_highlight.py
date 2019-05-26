@@ -2,14 +2,14 @@ import asyncio
 import contextlib
 import urllib.parse
 from io import BytesIO
-from typing import Optional, Union
+from typing import Optional
 
 from PIL import Image, ImageDraw, ImageFilter
 from pygments.formatters.img import ImageFormatter
 from pygments.lexers import get_lexer_by_name, guess_lexer
-from telethon.events import NewMessage
 from telethon.tl.custom import Message
 
+from .utils import Event, handle_help
 from misc.base16monokai import MonokaiDark
 
 
@@ -98,8 +98,7 @@ def get_code_image(code: str, lang: Optional[str] = None, line_numbers=True) -> 
 
 
 @contextlib.contextmanager
-def load_image(code: str, lang: Optional[str] = None,
-               line_numbers=True, add_carbon_link=True):
+def load_image(code: str, lang: Optional[str] = None, line_numbers=True, add_carbon_link=True):
     if not code:
         raise ValueError('Code block is empty.')
     for line in code.split('\n'):
@@ -117,9 +116,9 @@ def load_image(code: str, lang: Optional[str] = None,
     image.close()
 
 
-async def send_image(event, action, code: str,
-                     lang: Optional[str] = None,
-                     line_numbers=True, add_carbon_link=True):
+async def send_image(
+    event, action, code: str, lang: Optional[str] = None, line_numbers=True, add_carbon_link=True
+):
     try:
         with load_image(code, lang, line_numbers, add_carbon_link) as (file, link):
             await asyncio.gather(
@@ -131,25 +130,31 @@ async def send_image(event, action, code: str,
         await event.delete()
 
 
-async def highlight_code(event):
-    line_numbers = event.pattern_match.group(1) is not None
-    add_carbon_link = event.pattern_match.group(2) is not None
-    code = event.pattern_match.group(3)
-    code = code.strip()
-    await send_image(event, event.respond, code,
-                     line_numbers=line_numbers,
-                     add_carbon_link=add_carbon_link)
+async def highlight_code(event: Event):
+    if await handle_help(event):
+        return
 
-
-async def highlight_reply(event: Union[Message, NewMessage.Event]):
-    line_numbers = event.pattern_match.group(1) is not None
-    add_carbon_link = event.pattern_match.group(2) is not None
-    lang = event.pattern_match.group(3)
+    args = event.pattern_match
     reply_msg = await event.get_reply_message()  # type: Message
     if reply_msg:
-        code = reply_msg.raw_text
-        await send_image(event, reply_msg.reply, code, lang,
-                         line_numbers, add_carbon_link)
+        await send_image(
+            event,
+            reply_msg.reply,
+            reply_msg.raw_text,
+            lang=args.lang,
+            line_numbers=args.line_numbers,
+            add_carbon_link=args.carbon,
+        )
+    else:
+        code = args.text.strip()
+        await send_image(
+            event,
+            event.respond,
+            code,
+            lang=args.lang,
+            line_numbers=args.line_numbers,
+            add_carbon_link=args.carbon,
+        )
 
 
 def main():

@@ -8,6 +8,11 @@ from telethon.events import NewMessage
 from settings import USERBOT_NAME
 
 
+class Manager2:
+    def __init__(self, client: TelegramClient):
+        self.client = client
+
+
 class HandlerType(Enum):
     outgoing = auto()
     incoming = auto()
@@ -40,11 +45,11 @@ class Manager:
         self.client = client
         # commands
         commands = [
-            (self.toggle, '-toggle'),
-            (self.handlers_status, '-stat(p)?'),
-            (self.to_outgoing, '-too ([\w_]+)'),
-            (self.to_incoming, '-toi ([\w_]+)'),
-            (self.to_removed, '-tor ([\w_]+)'),
+            (self.toggle, r'-toggle'),
+            (self.handlers_status, r'-stat(p)?'),
+            (self.to_outgoing, r'-too ([\w_]+)'),
+            (self.to_incoming, r'-toi ([\w_]+)'),
+            (self.to_removed, r'-tor ([\w_]+)'),
         ]
         self.register_outgoing(*commands, add=False)
 

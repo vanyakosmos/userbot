@@ -5,6 +5,7 @@ from urllib.parse import quote
 import numpy as np
 from numpy.random import choice
 
+from handlers.utils import Event, handle_help
 
 widemap = dict((chr(i), chr(i + 0xFF00 - 0x20)) for i in range(0x21, 0x7F))
 widemap[chr(0x20)] = chr(0x3000)  # IDEOGRAPHIC SPACE
@@ -62,12 +63,15 @@ async def sky(event, text: str):
         )
 
 
-async def rolled_text(event, text: str, count=3):
+async def rolled_text(event, text: str, count=3, wide=False):
+    if not text:
+        text = ' ' * 5
     moons = '🌕🌖🌗🌘🌑🌒🌓🌔'
     moons = moons[::-1]
     rounds = len(text) * count
     text_size = len(text)
-    text = ''.join(map(widemap.get, text))
+    if wide:
+        text = ''.join(map(widemap.get, text))
     for i in range(rounds):
         msg = ''
         for j in range(text_size):
@@ -75,22 +79,26 @@ async def rolled_text(event, text: str, count=3):
         if i + text_size + 1 >= rounds:
             d = i + text_size - rounds + 1
             msg = text[:d] + msg[d:]
-        await asyncio.gather(
-            event.edit(msg),
-            asyncio.sleep(0.2),
-        )
+        msg = msg.strip()
+        if msg:
+            await asyncio.gather(
+                event.edit(msg),
+                asyncio.sleep(0.2),
+            )
+        else:
+            await event.delete()
 
 
-async def magic(event):
-    count = int(event.pattern_match.group(1) or '3')
-    text = event.pattern_match.group(2)
-    await rolled_text(event, text, count)
+async def magic(event: Event):
+    if await handle_help(event):
+        return
+    args = event.pattern_match
+    await rolled_text(event, args.text, args.count, args.wide)
 
 
 async def marquee_runner(event, phrase: str, count: int):
     pad = '.'
-    phrase = phrase.upper()
-    phrase = re.sub('\s', pad, phrase)
+    phrase = re.sub(r'\s', pad, phrase)
 
     size = max(len(phrase) * 2, 10)
     line = phrase + pad * (size - len(phrase))
@@ -105,11 +113,12 @@ async def marquee_runner(event, phrase: str, count: int):
         )
 
 
-async def marquee(event):
-    count = int(event.pattern_match.group(1) or '3')
-    text = event.pattern_match.group(2)
-    await marquee_runner(event, text, count)
-    await event.edit(text)
+async def marquee(event: Event):
+    if await handle_help(event):
+        return
+    args = event.pattern_match
+    await marquee_runner(event, args.text, args.count)
+    await event.edit(args.text)
 
 
 async def widener(event):
@@ -118,20 +127,20 @@ async def widener(event):
     await event.edit(text)
 
 
-async def google(event):
-    command = event.raw_text.split()[0]
-    let_me = 'l' in command
-    images = 'i' in command
-    text = event.pattern_match.group(1)
-    url_text = quote(text)
-    if let_me:
-        url = 'http://lmgtfy.com/?q=' + url_text
-    elif images:
-        url = 'https://google.com/search?tbm=isch&q=' + url_text
-    else:
-        url = 'https://google.com/search?q=' + url_text
+async def google(event: Event):
+    if await handle_help(event):
+        return
 
-    msg = f'[{text}]({url})'
+    args = event.pattern_match
+    if args.let_me:
+        base_url = f'http://lmgtfy.com/?q='
+    elif args.image:
+        base_url = 'https://google.com/search?tbm=isch&q='
+    else:
+        base_url = 'https://google.com/search?q='
+
+    base_url += quote(args.query)
+    msg = f'[{args.query}]({base_url})'
     await event.edit(msg, link_preview=False)
 
 
