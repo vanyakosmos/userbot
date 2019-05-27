@@ -13,7 +13,7 @@ class NewMessage(events.NewMessage):
         super().__init__(*args, **kwargs)
         self.parser = parser
         if cmd is not None:
-            self.cmd = re.compile(f">\\s*({cmd}.*)").match
+            self.cmd = re.compile(f"[>\\-]\\s*({cmd}.*)").match
         else:
             self.cmd = None
 
@@ -42,7 +42,7 @@ class Manager:
 
         client.add_event_handler(
             self.handle_toggle,
-            NewMessage(outgoing=True, pattern=r'>\s*(-t|toggle)', parser=self.parser),
+            NewMessage(outgoing=True, pattern=r'[>\-]\s*(-t|toggle)', parser=self.parser),
         )
 
     def add_handler(self, callback, event: NewMessage):
