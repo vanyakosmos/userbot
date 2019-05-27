@@ -6,7 +6,16 @@ import handlers
 from argsparse_extra import MergeAction
 from manager import Manager, NewMessage
 from persistence import load_session_file, save_before_term
-from settings import API_HASH, API_ID, NOU_LIST, USERBOT_NAME, USER_PASSWORD, USER_PHONE
+from config import (
+    API_HASH,
+    API_ID,
+    USERBOT_NAME,
+    USER_PASSWORD,
+    USER_PHONE,
+    configure_logging,
+    NOU_LIST_REGEX,
+    DEBUG,
+)
 
 logging.basicConfig(level=logging.DEBUG)
 logging.getLogger('telethon').setLevel(logging.WARNING)
@@ -17,7 +26,7 @@ save_before_term()
 load_session_file()
 
 
-def setup(client: TelegramClient):
+def setup_handlers(client: TelegramClient):
     m = Manager(client)
 
     m.add_handler(handlers.handle_help, NewMessage(cmd='', outgoing=True, parser=m.parser))
@@ -56,20 +65,19 @@ def setup(client: TelegramClient):
     with m.add_command('loop_desc', "loop random description", handlers.loop_description):
         pass
 
-    # no u
-    nou_pattern = "|".join(NOU_LIST)
-    nou_pattern = f'^.*({nou_pattern}).*$'
-    m.add_handler(handlers.nou, NewMessage(pattern=nou_pattern))
+    m.add_handler(handlers.nou, NewMessage(pattern=NOU_LIST_REGEX))
 
     m.register_handlers()
 
 
 def main():
+    configure_logging(level=logging.DEBUG if DEBUG else logging.INFO)
+
     client = TelegramClient(USERBOT_NAME, API_ID, API_HASH)
     client.parse_mode = 'md'
 
     logger.info("setting up...")
-    setup(client)
+    setup_handlers(client)
 
     logger.info("starting...")
     client.start(phone=USER_PHONE, password=USER_PASSWORD)

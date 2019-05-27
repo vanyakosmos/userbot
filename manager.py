@@ -4,7 +4,8 @@ from contextlib import contextmanager
 from telethon import TelegramClient, events
 
 from argsparse_extra import ArgumentParser, HelpAction
-from settings import USERBOT_NAME
+from config import USERBOT_NAME
+from handlers.utils import log
 
 
 class NewMessage(events.NewMessage):
@@ -22,10 +23,10 @@ class NewMessage(events.NewMessage):
             if not match:
                 return
             text = match[1]
-            args, _ = self.parser.parse_known_args(text.split())
-            if not args:
+            args_tuple = self.parser.parse_known_args(text.split())
+            if not args_tuple or not args_tuple[0]:
                 return
-            event.pattern_match = args
+            event.pattern_match = args_tuple[0]
 
         return super().filter(event)
 
@@ -40,16 +41,12 @@ class Manager:
         self.subparsers = self.parser.add_subparsers()
 
         client.add_event_handler(
-            self.handle_help,
-            NewMessage(outgoing=True, pattern=r'>\s*(-h|help)', parser=self.parser),
-        )
-        client.add_event_handler(
             self.handle_toggle,
             NewMessage(outgoing=True, pattern=r'>\s*(-t|toggle)', parser=self.parser),
         )
 
     def add_handler(self, callback, event: NewMessage):
-        return self.handlers.append((callback, event))
+        return self.handlers.append((log(callback), event))
 
     @contextmanager
     def add_command(self, name, help_text, callback, outgoing=True, incoming=False, **kwargs):
@@ -57,7 +54,7 @@ class Manager:
         sub_parser.add_argument('-h', '--help', action=HelpAction)
         yield sub_parser
         self.handlers.append((
-            callback,
+            log(callback),
             NewMessage(
                 cmd=name, parser=self.parser, outgoing=outgoing, incoming=incoming, **kwargs
             )
@@ -70,11 +67,6 @@ class Manager:
     def remove_handlers(self):
         for c, e in self.handlers:
             self.client.remove_event_handler(c, e)
-
-    async def handle_help(self, event):
-        text = self.parser.format_help()
-        text = f"```{text}```"
-        await event.reply(text)
 
     async def handle_toggle(self, event):
         first = self.handlers[0]

@@ -1,13 +1,21 @@
 import argparse
 import atexit
-import sys
+import logging
 
 import redis
 from telethon import TelegramClient
 
-from settings import API_HASH, API_ID, REDIS_URL, USERBOT_NAME, USER_PASSWORD, USER_PHONE
+from config import (
+    API_HASH,
+    API_ID,
+    REDIS_URL,
+    USERBOT_NAME,
+    USER_PASSWORD,
+    USER_PHONE,
+    configure_logging,
+)
 
-
+logger = logging.getLogger(__name__)
 SESSION_KEY = 'session'
 
 
@@ -19,27 +27,27 @@ def create_session_file():
 
 def save_session_file():
     if not REDIS_URL:
-        print(f"Session not saved.")
+        logger.info(f"Session is not saved.")
         return
     with open(USERBOT_NAME + '.session', 'rb') as f:
         session = f.read()
     client = redis.Redis.from_url(REDIS_URL)
     client.set(SESSION_KEY, session)
-    print(f"Session saved to redis under {SESSION_KEY} key.")
+    logger.info(f"Session saved to redis under {SESSION_KEY} key.")
 
 
 def load_session_file():
     if not REDIS_URL:
-        print(f"Session not loaded.")
+        logger.info(f"Session not loaded.")
         return
     client = redis.Redis.from_url(REDIS_URL)
     session = client.get(SESSION_KEY)
     if not session:
-        print('No session file to load.', file=sys.stderr)
+        logger.error('No session file to load.')
         exit(1)
     with open(USERBOT_NAME + '.session', 'wb') as f:
         f.write(session)
-    print(f"Session loaded from redis with {SESSION_KEY} key.")
+    logger.info(f"Session loaded from redis with {SESSION_KEY} key.")
 
 
 def save_before_term():
@@ -47,6 +55,7 @@ def save_before_term():
 
 
 def main():
+    configure_logging()
     parser = argparse.ArgumentParser()
     parser.add_argument('command', choices=['create', 'load'])
     args = parser.parse_args()
