@@ -18,3 +18,5 @@ NOU_LIST = easy_env.get_list('NOU_LIST', ['baka', 'idiot'], separator='|')
 NOT_PATTERN = "|".join([f"\\b{w}\\b" for w in NOU_LIST])
 NOT_PATTERN = f'.*({NOT_PATTERN}).*'
 NOU_LIST_REGEX = re.compile(NOT_PATTERN, re.IGNORECASE)
+
+NAME = easy_env.get('NAME', 'dude')

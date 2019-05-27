@@ -62,8 +62,12 @@ def setup_handlers(client: TelegramClient):
         p.add_argument('-c', dest='carbon', action='store_true', help="add carbon link")
         p.add_argument('--ln', dest='line_numbers', action='store_true', help="show line numbers")
 
-    with m.add_command('loop_desc', "loop random description", handlers.loop_description):
-        pass
+    with m.add_command('loop_desc', "loop description", handlers.loop_description) as p:
+        p.add_argument('-t', dest='type', help="type of description")
+        p.add_argument('-s', dest='sleep', type=int, default=30, help='sleep/update interval')
+
+    with m.add_command('loop_name', "loop name", handlers.loop_name) as p:
+        p.add_argument('-s', dest='sleep', type=int, default=120, help='sleep/update interval')
 
     m.add_handler(handlers.nou, NewMessage(pattern=NOU_LIST_REGEX))
 
