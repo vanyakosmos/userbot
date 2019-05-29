@@ -60,8 +60,8 @@ async def loop_name(event: Event):
         await event.reply(f"stop")
     while STATUS['username']:
         name = random_capitalization(NAME)
-        if random.random() > 0.66:
-            name = NAME[::-1]
+        if random.random() > 0.7:
+            name = name[::-1]
         logger.debug(f"new name: {name!r}")
         await event.client(UpdateProfileRequest(first_name=name))
         await asyncio.sleep(sleep)
