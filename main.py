@@ -3,7 +3,7 @@ import logging
 from telethon import TelegramClient
 
 import handlers
-from argsparse_extra import MergeAction
+from argparse_extra import MergeAction
 from manager import Manager, NewMessage
 from persistence import load_session_file, save_before_term
 from config import (
@@ -31,14 +31,17 @@ def setup_handlers(client: TelegramClient):
 
     m.add_handler(handlers.handle_help, NewMessage(cmd='', outgoing=True, parser=m.parser))
 
-    with m.add_command('e', "evaluate expression", handlers.calculator) as p:
+    with m.add_command('hello', "say hello", handlers.handle_hello):
+        pass
+
+    with m.add_command('e', "evaluate expression", handlers.handle_eval) as p:
         p.add_argument('expression', action=MergeAction)
 
-    with m.add_command('s', "find and replace", handlers.sub) as p:
+    with m.add_command('s', "find and replace", handlers.handle_sub) as p:
         p.add_argument('a', help='what to replace')
         p.add_argument('b', help='with what replace')
 
-    with m.add_command('t', "timer", handlers.timer) as p:
+    with m.add_command('t', "timer", handlers.handle_timer) as p:
         p.add_argument('time', help='time is seconds')
         p.add_argument('-m', dest='message', help='message to show after time is up')
 
@@ -62,7 +65,7 @@ def setup_handlers(client: TelegramClient):
         p.add_argument('-c', dest='carbon', action='store_true', help="add carbon link")
         p.add_argument('--ln', dest='line_numbers', action='store_true', help="show line numbers")
 
-    with m.add_command('r', "rotate image in replay", handlers.handle_rotate) as p:
+    with m.add_command('r', "rotate image in reply", handlers.handle_rotate) as p:
         p.add_argument('angle', type=int, default=90, help="rotation angle")
 
     with m.add_command('loop_desc', "loop description", handlers.loop_description) as p:
@@ -72,7 +75,7 @@ def setup_handlers(client: TelegramClient):
     with m.add_command('loop_name', "loop name", handlers.loop_name) as p:
         p.add_argument('-s', dest='sleep', type=int, default=120, help='sleep/update interval')
 
-    m.add_handler(handlers.nou, NewMessage(pattern=NOU_LIST_REGEX))
+    m.add_handler(handlers.handle_nou, NewMessage(pattern=NOU_LIST_REGEX))
 
     m.register_handlers()
 

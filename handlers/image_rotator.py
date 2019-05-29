@@ -5,9 +5,12 @@ import os
 from PIL import Image
 from telethon.tl.custom import Message
 
-from .utils import Event
+from .utils import Event, log
+
+__all__ = ['handle_rotate']
 
 
+@log
 async def handle_rotate(event: Event):
     reply_msg = await event.get_reply_message()  # type: Message
     if not reply_msg or not reply_msg.photo:

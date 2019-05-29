@@ -1,11 +1,13 @@
+import logging
 import re
 from contextlib import contextmanager
 
 from telethon import TelegramClient, events
 
-from argsparse_extra import ArgumentParser, HelpAction
+from argparse_extra import ArgumentParser, HelpAction
 from config import USERBOT_NAME
-from handlers.utils import log
+
+logger = logging.getLogger(__name__)
 
 
 class NewMessage(events.NewMessage):
@@ -46,17 +48,23 @@ class Manager:
         )
 
     def add_handler(self, callback, event: NewMessage):
-        return self.handlers.append((log(callback), event))
+        logger.debug(f"registered callback {callback} for event {event}")
+        return self.handlers.append((callback, event))
 
     @contextmanager
     def add_command(self, name, help_text, callback, outgoing=True, incoming=False, **kwargs):
         sub_parser = self.subparsers.add_parser(name, help=help_text, conflict_handler='resolve')
         sub_parser.add_argument('-h', '--help', action=HelpAction)
         yield sub_parser
+        logger.debug(f"registered command {name!r} with callback {callback}")
         self.handlers.append((
-            log(callback),
+            callback,
             NewMessage(
-                cmd=name, parser=self.parser, outgoing=outgoing, incoming=incoming, **kwargs
+                cmd=name,
+                parser=self.parser,
+                outgoing=outgoing,
+                incoming=incoming,
+                **kwargs,
             )
         ))
 

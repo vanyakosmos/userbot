@@ -2,7 +2,9 @@ import asyncio
 import re
 from time import time
 
-from .utils import Event
+from .utils import Event, log
+
+__all__ = ['handle_timer']
 
 
 def format_time(sec: float):
@@ -12,7 +14,8 @@ def format_time(sec: float):
     return f'{m:02d}:{s:02d}'
 
 
-async def timer(event: Event):
+@log
+async def handle_timer(event: Event):
     args = event.pattern_match
     t = args.time
     message = args.message

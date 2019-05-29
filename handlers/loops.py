@@ -6,8 +6,9 @@ from datetime import datetime
 from telethon.tl.functions.account import UpdateProfileRequest
 
 from config import NAME
-from .utils import Event
+from .utils import Event, log
 
+__all__ = ['loop_description', 'loop_name']
 logger = logging.getLogger(__name__)
 STATUS = {
     'description': False,
@@ -15,6 +16,7 @@ STATUS = {
 }
 
 
+@log
 async def loop_description(event: Event):
     text_type = event.pattern_match.type or 'time'
     sleep = event.pattern_match.sleep
@@ -50,6 +52,7 @@ def random_capitalization(text):
     return text
 
 
+@log
 async def loop_name(event: Event):
     sleep = event.pattern_match.sleep
     status = not STATUS['username']

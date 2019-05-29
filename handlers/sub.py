@@ -2,10 +2,13 @@ import re
 
 from telethon.tl.custom import Message
 
-from .utils import Event
+from .utils import Event, log
+
+__all__ = ['handle_sub']
 
 
-async def sub(event: Event):
+@log
+async def handle_sub(event: Event):
     pattern_from = event.pattern_match.a
     pattern_to = event.pattern_match.b or ''
 

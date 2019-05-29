@@ -2,12 +2,14 @@ import asyncio
 import logging
 import re
 
-from .utils import Event
+from .utils import Event, log
 
+__all__ = ['handle_eval']
 logger = logging.getLogger(__name__)
 
 
-async def calculator(event: Event):
+@log
+async def handle_eval(event: Event):
     expression = re.sub(r'[^\d+\-*/().,%&|{}\[\]\s]', '', event.pattern_match.expression)
 
     if not 0 < len(expression) < 100:

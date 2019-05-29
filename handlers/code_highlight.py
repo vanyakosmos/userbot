@@ -9,8 +9,10 @@ from pygments.formatters.img import ImageFormatter
 from pygments.lexers import get_lexer_by_name, guess_lexer
 from telethon.tl.custom import Message
 
-from .utils import Event
+from .utils import Event, log
 from misc.base16monokai import MonokaiDark
+
+__all__ = ['highlight_code']
 
 
 def build_carbon_url(code: str, lang: Optional[str]):
@@ -130,10 +132,11 @@ async def send_image(
         await event.delete()
 
 
+@log
 async def highlight_code(event: Event):
     args = event.pattern_match
     reply_msg = await event.get_reply_message()  # type: Message
-    if reply_msg:
+    if reply_msg and reply_msg.text:
         await send_image(
             event,
             reply_msg.reply,
@@ -142,7 +145,7 @@ async def highlight_code(event: Event):
             line_numbers=args.line_numbers,
             add_carbon_link=args.carbon,
         )
-    else:
+    if args.text:
         code = args.text.strip()
         await send_image(
             event,
