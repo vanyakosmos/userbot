@@ -62,6 +62,9 @@ def setup_handlers(client: TelegramClient):
         p.add_argument('-c', dest='carbon', action='store_true', help="add carbon link")
         p.add_argument('--ln', dest='line_numbers', action='store_true', help="show line numbers")
 
+    with m.add_command('r', "rotate image in replay", handlers.handle_rotate) as p:
+        p.add_argument('angle', type=int, default=90, help="rotation angle")
+
     with m.add_command('loop_desc', "loop description", handlers.loop_description) as p:
         p.add_argument('-t', dest='type', help="type of description")
         p.add_argument('-s', dest='sleep', type=int, default=30, help='sleep/update interval')
