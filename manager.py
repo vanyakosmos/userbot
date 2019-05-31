@@ -15,7 +15,7 @@ class NewMessage(events.NewMessage):
         super().__init__(*args, **kwargs)
         self.parser = parser
         if cmd is not None:
-            self.cmd = re.compile(f"[>\\-]\\s*({cmd}.*)").match
+            self.cmd = re.compile(f"^[>\\-]\\s*({cmd}(?:\\s+.*)?)$").match
         else:
             self.cmd = None
 
@@ -24,6 +24,7 @@ class NewMessage(events.NewMessage):
             match = self.cmd(event.message.message or '')
             if not match:
                 return
+            logger.debug(f"matched: {match.groups()}")
             text = match[1]
             args_tuple = self.parser.parse_known_args(text.split())
             if not args_tuple or not args_tuple[0]:
