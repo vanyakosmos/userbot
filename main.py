@@ -33,9 +33,9 @@ def setup_handlers(client: TelegramClient):
     with m.add_command('e', "evaluate expression", handlers.handle_eval) as p:
         p.add_argument('expression', action=MergeAction)
 
-    with m.add_command('s', "find and replace", handlers.handle_sub) as p:
-        p.add_argument('a', help='what to replace')
-        p.add_argument('b', help='with what replace')
+    with m.add_command('s', "sed substitution (aka find and replace)", handlers.handle_sub) as p:
+        p.add_argument('text', help='sed substitution string')
+        p.add_argument('-h', dest='highlight', action='store_true', help="highlight replaced")
 
     with m.add_command('t', "timer", handlers.handle_timer) as p:
         p.add_argument('time', help='time is seconds')

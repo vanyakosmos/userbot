@@ -26,7 +26,11 @@ class NewMessage(events.NewMessage):
                 return
             logger.debug(f"matched: {match.groups()}")
             text = match[1]
-            args_tuple = self.parser.parse_known_args(text.split())
+            try:
+                args_tuple = self.parser.parse_known_args(text.split())
+            except ValueError as e:
+                logger.debug(f"parse error: {e}")
+                return
             if not args_tuple or not args_tuple[0]:
                 return
             logger.debug(f"command arguments: {args_tuple[0]}")
