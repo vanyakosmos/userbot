@@ -27,7 +27,7 @@ def create_session_file():
 
 def save_session_file():
     if not REDIS_URL:
-        logger.info(f"Session is not saved.")
+        logger.warning(f"Session is not saved, REDIS_URL not found.")
         return
     with open(USERBOT_NAME + '.session', 'rb') as f:
         session = f.read()
@@ -38,7 +38,7 @@ def save_session_file():
 
 def load_session_file():
     if not REDIS_URL:
-        logger.info(f"Session not loaded.")
+        logger.warning(f"Session not loaded, REDIS_URL not found.")
         return
     client = redis.Redis.from_url(REDIS_URL)
     session = client.get(SESSION_KEY)
@@ -50,7 +50,7 @@ def load_session_file():
     logger.info(f"Session loaded from redis with {SESSION_KEY} key.")
 
 
-def save_before_term():
+def set_save_before_term_hook():
     atexit.register(save_session_file)
 
 

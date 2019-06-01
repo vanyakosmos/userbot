@@ -5,7 +5,7 @@ from telethon import TelegramClient
 import handlers
 from argparse_extra import MergeAction
 from manager import Manager, NewMessage
-from persistence import load_session_file, save_before_term
+from persistence import load_session_file, set_save_before_term_hook
 from config import (
     API_HASH,
     API_ID,
@@ -17,21 +17,17 @@ from config import (
     DEBUG,
 )
 
-logging.basicConfig(level=logging.DEBUG)
-logging.getLogger('telethon').setLevel(logging.WARNING)
-logging.getLogger('PIL').setLevel(logging.WARNING)
+configure_logging(level=logging.DEBUG if DEBUG else logging.INFO)
 logger = logging.getLogger(__name__)
-
-save_before_term()
-load_session_file()
 
 
 def setup_handlers(client: TelegramClient):
     m = Manager(client)
 
     m.add_handler(handlers.handle_help, NewMessage(cmd='', outgoing=True, parser=m.parser))
+    m.add_handler(handlers.handle_nou, NewMessage(pattern=NOU_LIST_REGEX))
 
-    with m.add_command('hello', "say hello", handlers.handle_hello):
+    with m.add_command('hello', "say hello from userbot", handlers.handle_hello):
         pass
 
     with m.add_command('e', "evaluate expression", handlers.handle_eval) as p:
@@ -75,13 +71,12 @@ def setup_handlers(client: TelegramClient):
     with m.add_command('loop_name', "loop name", handlers.loop_name) as p:
         p.add_argument('-s', dest='sleep', type=int, default=120, help='sleep/update interval')
 
-    m.add_handler(handlers.handle_nou, NewMessage(pattern=NOU_LIST_REGEX))
-
     m.register_handlers()
 
 
 def main():
-    configure_logging(level=logging.DEBUG if DEBUG else logging.INFO)
+    set_save_before_term_hook()
+    load_session_file()
 
     client = TelegramClient(USERBOT_NAME, API_ID, API_HASH)
     client.parse_mode = 'md'
