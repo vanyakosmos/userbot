@@ -1,5 +1,6 @@
 import asyncio
 import contextlib
+import logging
 import urllib.parse
 from io import BytesIO
 from typing import Optional
@@ -9,10 +10,36 @@ from pygments.formatters.img import ImageFormatter
 from pygments.lexers import get_lexer_by_name, guess_lexer
 from telethon.tl.custom import Message
 
-from .utils import Event, log
-from misc.base16monokai import MonokaiDark
+from handlers.utils import Event, log
+from .themes import AppleDark, MonokaiDark
 
-__all__ = ['highlight_code']
+FONTS = ['menlo', 'courier new', None]
+
+logger = logging.getLogger(__name__)
+
+
+def get_image_formatter(line_numbers: bool, theme: str):
+    for font in FONTS:
+        try:
+            return ImageFormatter(
+                image_format="PNG",
+                font_size=32,
+                font_name=font,
+                image_pad=30,
+                line_numbers=line_numbers,
+                line_number_bg='#22231e',
+                line_number_fg='#ddd',
+                line_number_bold=False,
+                line_number_separator=True,
+                line_number_pad=10,
+                style=MonokaiDark if theme == 'monokai' else AppleDark,
+            )
+        except Exception as e:
+            logger.exception(e)
+    else:
+        fonts = ', '.join(FONTS)
+        logger.error(f"Unable to find any of listed fonts: {fonts}")
+        return
 
 
 def build_carbon_url(code: str, lang: Optional[str]):
@@ -35,21 +62,9 @@ def get_lexer(lang=None, code=None):
     raise ValueError("Can't setup lexer.")
 
 
-def generate_code_image(code: str, lang: Optional[str] = None, line_numbers=True):
+def generate_code_image(code: str, lang: Optional[str] = None, line_numbers=True, theme='monokai'):
+    formatter = get_image_formatter(line_numbers, theme)
     lexer = get_lexer(code=code, lang=lang)
-    formatter = ImageFormatter(
-        image_format="PNG",
-        font_size=32,
-        font_name='Courier New',
-        image_pad=30,
-        line_numbers=line_numbers,
-        line_number_bg='#22231e',
-        line_number_fg='#ddd',
-        line_number_bold=False,
-        line_number_separator=True,
-        line_number_pad=10,
-        style=MonokaiDark,
-    )
     tokens = lexer.get_tokens(code)
     file = BytesIO()
     formatter.format(tokens, file)
@@ -92,21 +107,32 @@ def add_shadow(im: Image.Image, pad=100):
     return back
 
 
-def get_code_image(code: str, lang: Optional[str] = None, line_numbers=True) -> Image.Image:
-    image = generate_code_image(code, lang, line_numbers)
+def get_code_image(
+    code: str,
+    lang: Optional[str] = None,
+    line_numbers=True,
+    theme='monokai',
+) -> Image.Image:
+    image = generate_code_image(code, lang, line_numbers, theme)
     image = add_corners(image, 10)
     image = add_shadow(image)
     return image
 
 
 @contextlib.contextmanager
-def load_image(code: str, lang: Optional[str] = None, line_numbers=True, add_carbon_link=True):
+def load_image(
+    code: str,
+    lang: Optional[str] = None,
+    line_numbers=True,
+    add_carbon_link=True,
+    theme='monokai',
+):
     if not code:
         raise ValueError('Code block is empty.')
     for line in code.split('\n'):
         if len(line) > 150:
             raise ValueError('Line are to long.')
-    image = get_code_image(code, lang, line_numbers)
+    image = get_code_image(code, lang, line_numbers, theme)
     file = BytesIO()
     image.save(file, 'PNG')
     file.seek(0)
@@ -119,10 +145,16 @@ def load_image(code: str, lang: Optional[str] = None, line_numbers=True, add_car
 
 
 async def send_image(
-    event, action, code: str, lang: Optional[str] = None, line_numbers=True, add_carbon_link=True
+    event,
+    action,
+    code: str,
+    lang: Optional[str] = None,
+    line_numbers=True,
+    add_carbon_link=True,
+    theme='monokai',
 ):
     try:
-        with load_image(code, lang, line_numbers, add_carbon_link) as (file, link):
+        with load_image(code, lang, line_numbers, add_carbon_link, theme) as (file, link):
             await asyncio.gather(
                 action(link, file=file) if link else action(file=file),
                 event.delete(),
@@ -141,11 +173,13 @@ async def highlight_code(event: Event):
             event,
             reply_msg.reply,
             reply_msg.raw_text,
-            lang=args.lang,
+            # treat .text as language hint because we don't need it anyway
+            lang=args.lang or args.text,
             line_numbers=args.line_numbers,
             add_carbon_link=args.carbon,
+            theme=args.theme,
         )
-    if args.text:
+    elif args.text:
         code = args.text.strip()
         await send_image(
             event,
@@ -154,6 +188,7 @@ async def highlight_code(event: Event):
             lang=args.lang,
             line_numbers=args.line_numbers,
             add_carbon_link=args.carbon,
+            theme=args.theme,
         )
 
 

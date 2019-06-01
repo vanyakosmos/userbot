@@ -29,6 +29,7 @@ class NewMessage(events.NewMessage):
             args_tuple = self.parser.parse_known_args(text.split())
             if not args_tuple or not args_tuple[0]:
                 return
+            logger.debug(f"command arguments: {args_tuple[0]}")
             event.pattern_match = args_tuple[0]
 
         return super().filter(event)

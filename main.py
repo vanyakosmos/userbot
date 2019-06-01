@@ -60,6 +60,7 @@ def setup_handlers(client: TelegramClient):
         p.add_argument('-l', dest='lang', help="programming language")
         p.add_argument('-c', dest='carbon', action='store_true', help="add carbon link")
         p.add_argument('--ln', dest='line_numbers', action='store_true', help="show line numbers")
+        p.add_argument('-t', dest='theme', default='monokai', help="highlight theme")
 
     with m.add_command('r', "rotate image in reply", handlers.handle_rotate) as p:
         p.add_argument('angle', type=int, default=90, help="rotation angle")
