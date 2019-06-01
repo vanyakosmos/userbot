@@ -54,7 +54,7 @@ class Manager:
         )
 
     def add_handler(self, callback, event: NewMessage):
-        logger.debug(f"registered callback {callback} for event {event}")
+        logger.debug(f"registered callback {callback.__name__!r}")
         return self.handlers.append((callback, event))
 
     @contextmanager
@@ -62,7 +62,7 @@ class Manager:
         sub_parser = self.subparsers.add_parser(name, help=help_text, conflict_handler='resolve')
         sub_parser.add_argument('-h', '--help', action=HelpAction)
         yield sub_parser
-        logger.debug(f"registered command {name!r} with callback {callback}")
+        logger.debug(f"registered command {name!r} with callback {callback.__name__!r}")
         self.handlers.append((
             callback,
             NewMessage(

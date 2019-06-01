@@ -1,3 +1,4 @@
+import os
 import re
 
 import easy_env
@@ -20,3 +21,7 @@ NOT_PATTERN = f'.*({NOT_PATTERN}).*'
 NOU_LIST_REGEX = re.compile(NOT_PATTERN, re.IGNORECASE)
 
 NAME = easy_env.get('NAME', 'dude')
+LOGS_FILE_PATH = easy_env.get('LOGS_FILE_PATH', 'logs.txt')
+LOGS_FILE_DIR = os.path.split(LOGS_FILE_PATH)[0]
+if LOGS_FILE_DIR:
+    os.makedirs(LOGS_FILE_DIR, exist_ok=True)

@@ -1,5 +1,7 @@
 import logging.config
 
+from config.settings import LOGS_FILE_PATH
+
 
 def add_color(string: str, color, just=0):
     string = string.rjust(just)
@@ -28,6 +30,10 @@ def configure_logging(level='DEBUG', root_level='INFO'):
                 'format': f'[%(asctime)s] %(levelname)s %(name)20s:%(lineno)-3d {m} %(message)s',
                 'datefmt': "%Y/%m/%d %H:%M:%S"
             },
+            'simple': {
+                'format': f'[%(asctime)s] %(name)s:%(lineno)d > %(message)s',
+                'datefmt': "%Y/%m/%d %H:%M:%S"
+            },
         },
         'handlers': {
             'console': {
@@ -35,35 +41,38 @@ def configure_logging(level='DEBUG', root_level='INFO'):
                 'class': 'logging.StreamHandler',
                 'formatter': 'verbose'
             },
+            'file': {
+                'level': 'DEBUG',
+                'class': 'logging.handlers.RotatingFileHandler',
+                'filename': LOGS_FILE_PATH,
+                'formatter': 'simple',
+                'maxBytes': 1024 * 1024,
+                'backupCount': 1,
+            },
         },
         'loggers': {
             'handlers': {
-                'handlers': ['console'],
-                'level': level,
-                'propagate': False,
-            },
-            'misc': {
-                'handlers': ['console'],
+                'handlers': ['console', 'file'],
                 'level': level,
                 'propagate': False,
             },
             'manager': {
-                'handlers': ['console'],
+                'handlers': ['console', 'file'],
                 'level': level,
                 'propagate': False,
             },
             'persistence': {
-                'handlers': ['console'],
+                'handlers': ['console', 'file'],
                 'level': level,
                 'propagate': False,
             },
             '__main__': {
-                'handlers': ['console'],
+                'handlers': ['console', 'file'],
                 'level': level,
                 'propagate': False,
             },
             '': {
-                'handlers': ['console'],
+                'handlers': ['console', 'file'],
                 'level': root_level,
                 'propagate': False,
             },

@@ -109,3 +109,4 @@ venv.bak/
 *.session*
 playground.py
 base16
+logs

@@ -1,6 +1,7 @@
 from .calculator import *
 from .code_highlight import *
 from .image_rotator import *
+from .logs import *
 from .loops import *
 from .magic import *
 from .misc import *
