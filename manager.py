@@ -14,10 +14,14 @@ class NewMessage(events.NewMessage):
     def __init__(self, *args, parser=None, cmd=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.parser = parser
+        self.cmd = None
+        self.cmd_pattern = None
         if cmd is not None:
-            self.cmd = re.compile(f"^[>\\-]\\s*({cmd}(?:\\s+.*)?)$").match
-        else:
-            self.cmd = None
+            if cmd:
+                self.cmd_pattern = re.compile(r"^[>\-]\s*(%s(?:\s+.*)?)$" % cmd)
+            else:
+                self.cmd_pattern = re.compile(r"^[>\-]\s*((?:\s*.*)?)$")
+            self.cmd = self.cmd_pattern.match
 
     def filter(self, event):
         if self.cmd is not None:
