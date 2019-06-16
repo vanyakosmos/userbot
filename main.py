@@ -47,7 +47,7 @@ def setup_handlers(client: TelegramClient):
         p.add_argument('-l', dest='let_me', action='store_true', help='"let me google for you"')
 
     with m.add_command('m', "magic moon loop", handlers.magic) as p:
-        p.add_argument('text', nargs='?', action=MergeAction)
+        p.add_argument('text', nargs='*', action=MergeAction)
         p.add_argument('-c', dest='count', type=int, default=3, help='number of loops')
         p.add_argument('-w', dest='wide', action='store_true', help='use wide text')
 
@@ -56,7 +56,7 @@ def setup_handlers(client: TelegramClient):
         p.add_argument('-c', dest='count', type=int, default=3, help='number of loops')
 
     with m.add_command('h', "highlight text/code block", handlers.highlight_code) as p:
-        p.add_argument('text', nargs='?', action=MergeAction)
+        p.add_argument('text', nargs='*', action=MergeAction)
         p.add_argument('-l', dest='lang', help="programming language")
         p.add_argument('-c', dest='carbon', action='store_true', help="add carbon link")
         p.add_argument('--ln', dest='line_numbers', action='store_true', help="show line numbers")

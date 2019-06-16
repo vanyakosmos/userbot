@@ -16,6 +16,8 @@ class HelpAction(argparse.Action):
 
 class MergeAction(argparse.Action):
     def __init__(self, *args, **kwargs):
+        if 'nargs' not in kwargs:
+            kwargs['nargs'] = '+'
         super().__init__(*args, **kwargs, type=str)
 
     def __call__(self, parser, namespace, values, option_string=None):
