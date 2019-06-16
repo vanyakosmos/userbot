@@ -19,4 +19,6 @@ class MergeAction(argparse.Action):
         super().__init__(*args, **kwargs, type=str)
 
     def __call__(self, parser, namespace, values, option_string=None):
-        setattr(namespace, self.dest, ' '.join(values) if values else None)
+        if isinstance(values, (tuple, list)):
+            values = ' '.join(values)
+        setattr(namespace, self.dest, values)

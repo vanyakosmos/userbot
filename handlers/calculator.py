@@ -10,20 +10,23 @@ logger = logging.getLogger(__name__)
 
 @log
 async def handle_eval(event: Event):
-    expression = re.sub(r'[^\d+\-*/().,%&|{}\[\]\s]', '', event.pattern_match.expression)
+    expr = event.pattern_match.expression
+    logger.debug(f'expr: {expr}')
+    expr = re.sub(r'\^', r'**', expr)
+    expr = re.sub(r'[^\d+\-*/().,%&|{}\[\]\s]', '', expr)
 
-    if not 0 < len(expression) < 100:
+    if not 0 < len(expr) < 100:
         await event.reply("Bad expression.")
         return
     try:
-        answer = eval(expression)
+        answer = eval(expr)
         if answer == set():
             answer = '{}'
-        msg = f'```{expression}\n> {answer}```'
+        msg = f'```{expr}\n> {answer}```'
     except Exception as e:
-        logger.error(f"error in expression: {expression}")
+        logger.error(f"error in expression: {expr}")
         logger.exception(e)
-        msg = f"`{expression}`\nBad expression."
+        msg = f"`{expr}`\nBad expression."
     await asyncio.gather(
         event.delete(),
         event.respond(msg),
