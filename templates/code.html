@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+
+{% block body %}
+  <form method="post">
+    <div class="form-input">
+      <label>
+        <div>phone:</div>
+        <input name="phone" type="text">
+      </label>
+    </div>
+    <div class="form-input">
+      <label>
+        <div>received code:</div>
+        <input type="text">
+      </label>
+    </div>
+    <div class="form-input">
+      <button>submit</button>
+    </div>
+  </form>
+{% endblock %}

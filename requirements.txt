@@ -5,3 +5,4 @@ pillow==5.2.0
 pygments==2.2.0
 redis==2.10.6
 numpy==1.13.3
+quart
