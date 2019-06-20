@@ -1,3 +1,6 @@
+"""
+Run multiple telegram clients and auth server.
+"""
 import glob
 import logging
 import re
@@ -6,9 +9,10 @@ from quart import Quart, request, render_template
 from telethon import TelegramClient
 import asyncio
 
-from config import API_ID, API_HASH
-from main import setup_handlers
+from config import API_ID, API_HASH, DEBUG, configure_logging
+from manager import setup_handlers
 
+configure_logging(level=DEBUG and logging.DEBUG)
 logger = logging.getLogger(__name__)
 app = Quart(__name__, template_folder='templates')
 db = {}
@@ -23,9 +27,10 @@ async def try_connect(client):
         await client.connect()
 
 
-async def get_client(phone):
-    client = TelegramClient(session_name(phone), API_ID, API_HASH)
-    client.parse_mode = 'html'
+async def get_client(phone, **kwargs):
+    client = TelegramClient(session_name(phone), API_ID, API_HASH, **kwargs)
+    client.parse_mode = 'md'
+    setup_handlers(client)
     await try_connect(client)
     return client
 
@@ -37,10 +42,13 @@ async def index_view():
 
     if 'phone' in form:
         phone = form['phone']
-        client = await get_client(phone)
-        if phone not in db:
-            logger.debug(f"phone {phone} not in registry")
-            setup_handlers(client)
+
+        if phone in db:
+            logger.debug(f"phone {phone} is in registry")
+            client = db[phone]
+        else:
+            logger.debug(f"phone {phone} was not in registry")
+            client = await get_client(phone)
             db[phone] = client
         if 'code' not in form and not await client.is_user_authorized():
             logger.debug(f"sending code for {phone}")
@@ -70,14 +78,18 @@ async def index_view():
 def load_sessions(loop):
     for s in glob.glob('SERVER:*.session'):
         phone = re.match(r'^SERVER:(.+)\.session$', s)[1]
-        client = TelegramClient(session_name(phone), API_ID, API_HASH, loop=loop)
+        client = loop.run_until_complete(get_client(phone, loop=loop))
         setup_handlers(client)
         db[phone] = client
-        loop.run_until_complete(try_connect(client))
     print(db)
 
 
 def main():
+    # todo: persist sessions on exit
+    # todo: load from redis on start
+    # todo: add master key
+    # todo: add password processing
+
     loop = asyncio.get_event_loop()
     load_sessions(loop)
     app.run(loop=loop)

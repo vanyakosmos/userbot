@@ -1,6 +1,6 @@
 import logging.config
 
-from config.settings import LOGS_FILE_PATH
+from config.settings import LOGS_FILE_PATH, LOGGING_LEVEL, LOGGING_LEVEL_ROOT
 
 
 def add_color(string: str, color, just=0):
@@ -8,7 +8,10 @@ def add_color(string: str, color, just=0):
     return f'\033[{color}m{string}\033[0m'
 
 
-def configure_logging(level='DEBUG', root_level='INFO'):
+def configure_logging(level=None, root_level=None):
+    level = level or LOGGING_LEVEL
+    root_level = root_level or LOGGING_LEVEL_ROOT
+
     # setup logging level display
     levels = [
         (logging.DEBUG, add_color('DEBUG', '36', 5)),

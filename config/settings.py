@@ -25,3 +25,6 @@ LOGS_FILE_PATH = easy_env.get('LOGS_FILE_PATH', 'logs.txt')
 LOGS_FILE_DIR = os.path.split(LOGS_FILE_PATH)[0]
 if LOGS_FILE_DIR:
     os.makedirs(LOGS_FILE_DIR, exist_ok=True)
+
+LOGGING_LEVEL = easy_env.get('LOGGING_LEVEL', 'DEBUG')
+LOGGING_LEVEL_ROOT = easy_env.get('LOGGING_LEVEL_ROOT', 'INFO')
