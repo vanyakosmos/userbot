@@ -1,4 +1,5 @@
 from telethon.events import StopPropagation
+from telethon.sessions import SQLiteSession
 
 from config import USERBOT_NAME
 from .utils import Event, log
@@ -8,7 +9,10 @@ __all__ = ['handle_help', 'handle_nou', 'handle_hello']
 
 @log
 async def handle_hello(event: Event):
-    await event.reply(f'hello from {USERBOT_NAME}')
+    s = event.client.session
+    if isinstance(s, SQLiteSession):
+        s = s.filename
+    await event.reply(f'{USERBOT_NAME}, session: {s!r}')
 
 
 @log
