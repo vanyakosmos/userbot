@@ -2,6 +2,7 @@
 Run multiple telegram clients and auth server.
 """
 import asyncio
+import atexit
 import logging
 
 from quart import Quart, render_template, request
@@ -56,6 +57,7 @@ def main():
     # todo: save phone in cookies or localStorage
 
     loop = asyncio.get_event_loop()
+    atexit.register(registry.disconnect_clients)
     registry.load_sessions(loop)
     app.run(loop=loop)
 

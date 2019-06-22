@@ -75,6 +75,8 @@ class Registry:
             s = os.path.split(s)[1]
             phone = re.match(r'^(.+)\.session$', s)[1]
             client = loop.run_until_complete(self.make_client(phone, loop=loop))
+            user = loop.run_until_complete(client.get_me())
+            logger.debug(f"loaded {user.username}")
             registry.save_client(phone, client)
 
     def load_sessions(self, loop: AbstractEventLoop):
@@ -88,6 +90,11 @@ class Registry:
 
     def get_client(self, phone: str) -> Optional[TelegramClient]:
         return self.store.get(phone)
+
+    def disconnect_clients(self):
+        for phone, client in self.store.items():
+            logger.debug(f"disconnecting from {phone}")
+            client.disconnect()
 
 
 registry = Registry()
