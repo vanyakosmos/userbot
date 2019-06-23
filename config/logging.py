@@ -54,30 +54,16 @@ def configure_logging(level=None, root_level=None):
             },
         },
         'loggers': {
-            'handlers': {
+            module: {
                 'handlers': ['console', 'file'],
                 'level': level,
                 'propagate': False,
-            },
-            'manager': {
-                'handlers': ['console', 'file'],
-                'level': level,
-                'propagate': False,
-            },
-            'persistence': {
-                'handlers': ['console', 'file'],
-                'level': level,
-                'propagate': False,
-            },
-            '__main__': {
-                'handlers': ['console', 'file'],
-                'level': level,
-                'propagate': False,
-            },
-            '': {
-                'handlers': ['console', 'file'],
-                'level': root_level,
-                'propagate': False,
-            },
-        }
+            }
+            for module in ['handlers', 'manager', 'persistence', 'registry', '__main__']
+        },
+        'root': {
+            'handlers': ['console', 'file'],
+            'level': root_level,
+            'propagate': False,
+        },
     })
