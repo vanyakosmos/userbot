@@ -1,2 +1,2 @@
 release: bash release.sh
-worker: python main.py
+web: python server.py
