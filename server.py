@@ -53,8 +53,6 @@ async def index_view():
 def main():
     # todo: add master key
     # todo: add password processing
-    # todo: restyle views
-    # todo: save phone in cookies or localStorage
 
     loop = asyncio.get_event_loop()
     atexit.register(registry.disconnect_clients)
