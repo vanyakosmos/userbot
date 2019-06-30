@@ -2,18 +2,21 @@
 
 {% block body %}
   <form method="post">
+    {% include 'includes/master_phone.html' %}
     <div class="form-group row">
-      <label for="phone" class="col-sm-2 col-form-label">phone</label>
-      <div class="col-sm-10">
-        <input type="text" class="form-control " id="phone" name="phone"
-               placeholder="+380000000000">
+      <label for="password" class="col-sm-4 col-form-label">password</label>
+      <div class="col-sm-8">
+        <input type="password" class="form-control " id="password" name="password"
+               placeholder="qwerty123?">
+        <small class="form-text text-muted">Password is required if you have set up 2 step verification.</small>
       </div>
     </div>
     <div class="form-group row">
-      <label for="code" class="col-sm-2 col-form-label">code</label>
-      <div class="col-sm-10">
+      <label for="code" class="col-sm-4 col-form-label">code</label>
+      <div class="col-sm-8">
         <input type="text" class="form-control " id="code" name="code"
                placeholder="70707">
+        <small class="form-text text-muted">Code sent by telegram.</small>
       </div>
     </div>
     <button type="submit" class="btn btn-primary">Submit</button>

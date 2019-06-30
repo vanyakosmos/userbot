@@ -2,14 +2,7 @@
 
 {% block body %}
   <form method="post">
-    <div class="form-group row">
-      <label for="phone" class="col-sm-2 col-form-label">phone</label>
-      <div class="col-sm-10">
-        <input type="text" class="form-control" id="phone"
-               name="phone"
-               placeholder="+380000000000">
-      </div>
-    </div>
+    {% include 'includes/master_phone.html' %}
     <button type="submit" class="btn btn-primary">Submit</button>
   </form>
 {% endblock %}

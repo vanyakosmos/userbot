@@ -7,7 +7,7 @@ import logging
 
 from quart import Quart, render_template, request
 
-from config import DEBUG, configure_logging
+from config import DEBUG, configure_logging, MASTER_KEY
 from registry import Registry, registry
 
 configure_logging(level=DEBUG and logging.DEBUG)
@@ -17,12 +17,18 @@ app = Quart(__name__, template_folder='templates')
 
 @app.route('/', methods=['GET', 'POST'])
 async def index_view():
+    messages = []
     form = await request.form
     logger.debug(f"received form {form}")
 
     if 'phone' not in form:
         logger.debug(f"show phone form")
-        return await render_template('index.html')
+        return await render_template('index.html', messages=messages)
+
+    if form.get('master') != MASTER_KEY:
+        logger.debug(f"no master key, show index")
+        messages.append({'tag': 'alert-danger', 'text': 'invalid master key'})
+        return await render_template('index.html', messages=messages)
 
     phone = form['phone']
 
@@ -39,21 +45,23 @@ async def index_view():
 
     if 'code' in form:
         logger.debug(f"trying to sign in for {phone}")
-        await client.sign_in(code=form['code'])
+        await client.sign_in(code=form['code'], password=form.get('password'))
 
     if await client.is_user_authorized():
         logger.debug(f"user authenticated")
         me = await client.get_me()
-        return await render_template('me.html', username=me.username, already='code' not in form)
+        return await render_template(
+            'me.html',
+            username=me.username,
+            already='code' not in form,
+            messages=messages,
+        )
 
     logger.debug(f"show phone-code form")
-    return await render_template('code.html')
+    return await render_template('code.html', messages=messages)
 
 
 def main():
-    # todo: add master key
-    # todo: add password processing
-
     loop = asyncio.get_event_loop()
     atexit.register(registry.disconnect_clients)
     registry.load_sessions(loop)

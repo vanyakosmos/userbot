@@ -28,3 +28,5 @@ if LOGS_FILE_DIR:
 
 LOGGING_LEVEL = easy_env.get('LOGGING_LEVEL', 'DEBUG')
 LOGGING_LEVEL_ROOT = easy_env.get('LOGGING_LEVEL_ROOT', 'INFO')
+
+MASTER_KEY = easy_env.get('MASTER_KEY', 'key')

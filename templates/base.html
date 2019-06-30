@@ -11,7 +11,7 @@
         crossorigin="anonymous">
   <style>
     .container {
-      max-width: 400px;
+      max-width: 600px;
       margin: 50px auto 0 auto;
     }
   </style>
@@ -21,6 +21,18 @@
 <body>
 
 <div class="container">
+  {% if messages %}
+    {% for message in messages %}
+      <div class="alert {{ message.tag }} alert-dismissible" role="alert">
+        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+        {{ message.text }}
+      </div>
+    {% endfor %}
+    <br/>
+  {% endif %}
+
   {% block body %}{% endblock %}
 </div>
 
@@ -37,10 +49,13 @@
 <script>
   $(document).ready(() => {
     const $p = $('#phone');
+    const $m = $('#master');
     $p.val(localStorage.getItem('phone') || '');
+    $m.val(localStorage.getItem('master') || '');
 
     $('form').on('submit', () => {
       localStorage.setItem('phone', $p.val());
+      localStorage.setItem('master', $m.val());
     })
   });
 </script>
