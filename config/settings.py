@@ -30,3 +30,4 @@ LOGGING_LEVEL = easy_env.get('LOGGING_LEVEL', 'DEBUG')
 LOGGING_LEVEL_ROOT = easy_env.get('LOGGING_LEVEL_ROOT', 'INFO')
 
 MASTER_KEY = easy_env.get('MASTER_KEY', 'key')
+PORT = easy_env.get('PORT', 5000)

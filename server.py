@@ -7,7 +7,7 @@ import logging
 
 from quart import Quart, render_template, request
 
-from config import DEBUG, configure_logging, MASTER_KEY
+from config import DEBUG, configure_logging, MASTER_KEY, PORT
 from registry import Registry, registry
 
 configure_logging(level=DEBUG and logging.DEBUG)
@@ -50,6 +50,7 @@ async def index_view():
     if await client.is_user_authorized():
         logger.debug(f"user authenticated")
         me = await client.get_me()
+
         return await render_template(
             'me.html',
             username=me.username,
@@ -65,7 +66,7 @@ def main():
     loop = asyncio.get_event_loop()
     atexit.register(registry.disconnect_clients)
     registry.load_sessions(loop)
-    app.run(loop=loop)
+    app.run(host='0.0.0.0', port=PORT, loop=loop, debug=DEBUG)
 
 
 if __name__ == '__main__':
