@@ -51,6 +51,7 @@ class Registry:
             logger.warning(f"Sessions are not saved, REDIS_URL not found.")
             return
         client = redis.from_url(REDIS_URL)
+        client.delete(self.sessions_redis_key)
         for phone in self.store:
             s = self.get_session(phone)
             with open(f'{s}.session', 'rb') as f:
@@ -71,13 +72,16 @@ class Registry:
         logger.debug(f"Sessions loaded from redis for {list(sessions.keys())}")
 
     def load_sessions_from_files(self, loop: AbstractEventLoop):
-        for s in glob.glob(os.path.join(self.sessions_dir, '*.session')):
-            s = os.path.split(s)[1]
+        for file_path in glob.glob(os.path.join(self.sessions_dir, '*.session')):
+            s = os.path.split(file_path)[1]
             phone = re.match(r'^(.+)\.session$', s)[1]
-            client = loop.run_until_complete(self.make_client(phone, loop=loop))
-            user = loop.run_until_complete(client.get_me())
-            logger.debug(f"loaded {user.username}")
-            registry.save_client(phone, client)
+            client: TelegramClient = loop.run_until_complete(self.make_client(phone, loop=loop))
+            if loop.run_until_complete(client.is_user_authorized()):
+                user = loop.run_until_complete(client.get_me())
+                logger.debug(f"loaded {user.username}")
+                registry.save_client(phone, client)
+            else:
+                os.remove(file_path)
 
     def load_sessions(self, loop: AbstractEventLoop):
         atexit.register(self.save_sessions_to_redis)
