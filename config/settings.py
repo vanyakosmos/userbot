@@ -16,9 +16,9 @@ USER_PHONE = easy_env.get('USER_PHONE')
 USER_PASSWORD = easy_env.get('USER_PASSWORD')
 
 NOU_LIST = easy_env.get_list('NOU_LIST', ['baka', 'idiot'], separator='|')
-NOT_PATTERN = "|".join([f"\\b{w}\\b" for w in NOU_LIST])
-NOT_PATTERN = f'.*({NOT_PATTERN}).*'
-NOU_LIST_REGEX = re.compile(NOT_PATTERN, re.IGNORECASE)
+NOU_PATTERN = "|".join([f"\\b{w}\\b" for w in NOU_LIST])
+NOU_PATTERN = f'.*({NOU_PATTERN}).*'
+NOU_LIST_REGEX = re.compile(NOU_PATTERN, re.IGNORECASE)
 
 NAME = easy_env.get('NAME', 'dude')
 LOGS_FILE_PATH = easy_env.get('LOGS_FILE_PATH', 'logs.txt')
