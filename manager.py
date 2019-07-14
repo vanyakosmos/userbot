@@ -1,6 +1,8 @@
+import asyncio
 import logging
 import re
 from argparse import Action
+from collections import OrderedDict
 from contextlib import contextmanager
 from typing import Union, Type, Tuple
 
@@ -17,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 
 class NewMessage(events.NewMessage):
-    def __init__(self, *args, parser=None, cmd=None, **kwargs):
+    def __init__(self, *args, name=None, parser=None, cmd=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.parser = parser
         self.cmd = None
@@ -28,11 +30,13 @@ class NewMessage(events.NewMessage):
                 commands = [cmd]
             assert len(commands) > 0
             if cmd != '':
-                cmd = '(?:' + '|'.join(commands) + ')'
-                self.cmd_pattern = re.compile(r"^[>\-]\s*(%s(?:\s+.*)?)$" % cmd)
+                cmd_pattern = '(?:' + '|'.join(commands) + ')'
+                self.cmd_pattern = re.compile(r"^[>\-]\s*(%s(?:\s+.*)?)$" % cmd_pattern)
             else:
                 self.cmd_pattern = re.compile(r"^[>\-]\s*((?:\s*.*)?)$")
             self.cmd = self.cmd_pattern.match
+        # explicit or first command or None
+        self.name = name or (cmd and isinstance(cmd, (tuple, list)) and cmd[0]) or cmd or None
 
     def filter(self, event):
         if self.cmd is not None:
@@ -58,14 +62,19 @@ class Manager:
     def __init__(self, client: TelegramClient):
         self.client = client
         self.handlers = []
+        self.handlers_statuses = OrderedDict()
 
         self.parser = ArgumentParser(prog='USERBOT', conflict_handler='resolve')
         self.parser.add_argument('-h', '--help', action=HelpAction)
         self.subparsers = self.parser.add_subparsers()
 
+    def set_status(self, name: str, status: bool):
+        if name:
+            self.handlers_statuses[name] = status
+
     def add_handler(self, callback, event: NewMessage):
         logger.debug(f"registered callback {callback.__name__!r}")
-        return self.handlers.append((callback, event))
+        self.handlers.append((callback, event))
 
     @contextmanager
     def add_command(
@@ -112,10 +121,17 @@ class Manager:
     def register_handlers(self):
         for c, e in self.handlers:
             self.client.add_event_handler(c, e)
+            self.set_status(e.name, True)
 
     def remove_handlers(self):
         for c, e in self.handlers:
             self.client.remove_event_handler(c, e)
+            self.set_status(e.name, False)
+
+    async def delayed_respond(self, event, respond, delay=3):
+        _, msg = await asyncio.gather(event.delete(), event.respond(respond))
+        await asyncio.sleep(delay)
+        await msg.delete()
 
     async def handle_toggle(self, event: Event):
         first = self.handlers[0]
@@ -124,9 +140,40 @@ class Manager:
             self.remove_handlers()
         else:
             self.register_handlers()
-        toggle_text = 'off' if toggle else 'on'
-        await event.reply(f"{USERBOT_NAME} is {toggle_text}")
+        toggle_text = '❌ off' if toggle else '✅ on'
+        await self.delayed_respond(event, f"{USERBOT_NAME} is {toggle_text}")
         raise StopPropagation()
+
+    async def handle_toggle_command(self, event: Event, adding: bool):
+        handler_name = event.pattern_match.handler
+        for c, e in self.handlers:
+            if e.name == handler_name:
+                if adding:
+                    self.client.add_event_handler(c, e)
+                    respond = f"✅ handler {handler_name!r} was started"
+                else:
+                    self.client.remove_event_handler(c, e)
+                    respond = f"❌ handler {handler_name!r} was stopped"
+                self.set_status(e.name, adding)
+                await self.delayed_respond(event, respond)
+                break
+        else:
+            respond = f"😡 no handler with name {handler_name!r} was found"
+            await self.delayed_respond(event, respond)
+        raise StopPropagation()
+
+    async def handle_stop_command(self, event: Event):
+        await self.handle_toggle_command(event, adding=False)
+
+    async def handle_start_command(self, event: Event):
+        await self.handle_toggle_command(event, adding=True)
+
+    async def handle_status(self, event: Event):
+        text = '\n'.join([
+            f"{'✅' if status else '❌'} {handler}"
+            for handler, status in self.handlers_statuses.items()
+        ])
+        await self.delayed_respond(event, f"```{text}```", delay=10)
 
 
 def setup_handlers(client: TelegramClient):
@@ -144,6 +191,32 @@ def setup_handlers(client: TelegramClient):
         pass
 
     with m.add_command(
+        'status',
+        "show handlers statuses",
+        m.handle_status,
+        registry=False,
+    ):
+        pass
+
+    with m.add_command(
+        'stop_command',
+        "stop command/handler",
+        m.handle_stop_command,
+        aliases=('stop',),
+        registry=False,
+    ) as p:
+        p.add_argument('handler', help='name of handler to stop')
+
+    with m.add_command(
+        'start_command',
+        "start command/handler",
+        m.handle_start_command,
+        aliases=('start',),
+        registry=False,
+    ) as p:
+        p.add_argument('handler', help='name of handler to start')
+
+    with m.add_command(
         'nou',
         f"Respond to specific messages with 'no u'.",
         handlers.handle_noop,
@@ -153,7 +226,7 @@ def setup_handlers(client: TelegramClient):
         ),
         action=('help', HelpAction),
     ):
-        m.add_handler(handlers.handle_nou, NewMessage(pattern=NOU_LIST_REGEX))
+        m.add_handler(handlers.handle_nou, NewMessage(name='nou', pattern=NOU_LIST_REGEX))
 
     with m.add_command('hello', "say hello from userbot", handlers.handle_hello):
         pass
