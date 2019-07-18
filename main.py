@@ -29,7 +29,7 @@ def main():
     client.parse_mode = 'md'
 
     logger.info("setting up...")
-    setup_handlers(client)
+    setup_handlers(USERBOT_NAME, client)
 
     logger.info("starting...")
     client.start(phone=USER_PHONE, password=USER_PASSWORD)

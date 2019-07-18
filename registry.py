@@ -42,7 +42,7 @@ class Registry:
         session = cls.get_session(phone)
         client = TelegramClient(session, API_ID, API_HASH, **kwargs)
         client.parse_mode = 'md'
-        setup_handlers(client)
+        setup_handlers(phone, client)
         await try_connect(client)
         return client
 

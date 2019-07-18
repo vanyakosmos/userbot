@@ -1,4 +1,5 @@
 import asyncio
+import atexit
 import logging
 import re
 from argparse import Action
@@ -13,6 +14,7 @@ import handlers
 from argparse_extra import ArgumentParser, HelpAction, MergeAction
 from config import NOU_LIST_REGEX, USERBOT_NAME, NOU_PATTERN
 from handlers.utils import Event
+from persistence import load_json, save_json
 
 ActionType = Union[str, Type[Action]]
 logger = logging.getLogger(__name__)
@@ -59,7 +61,8 @@ class NewMessage(events.NewMessage):
 
 
 class Manager:
-    def __init__(self, client: TelegramClient):
+    def __init__(self, user_key: str, client: TelegramClient):
+        self.user_key = user_key
         self.client = client
         self.handlers = []
         self.handlers_statuses = OrderedDict()
@@ -67,6 +70,8 @@ class Manager:
         self.parser = ArgumentParser(prog='USERBOT', conflict_handler='resolve')
         self.parser.add_argument('-h', '--help', action=HelpAction)
         self.subparsers = self.parser.add_subparsers()
+
+        atexit.register(self.save_statuses)
 
     def set_status(self, name: str, status: bool):
         if name:
@@ -117,6 +122,30 @@ class Manager:
             self.handlers.append((callback, message_matcher))
         else:
             self.client.add_event_handler(callback, message_matcher)
+
+    @property
+    def status_redis_key(self):
+        return f"status:{self.user_key}"
+
+    def save_statuses(self):
+        logger.info("saving statuses...")
+        save_json(self.status_redis_key, self.handlers_statuses)
+
+    def update_statuses_from_store(self):
+        logger.info("loading statuses from store...")
+        statuses: dict = load_json(self.status_redis_key)
+        if not statuses:
+            return
+        for name, value in statuses.items():
+            if name in self.handlers_statuses:
+                self.handlers_statuses[name] = value
+                for c, e in self.handlers:
+                    if e.name != name:
+                        continue
+                    if value:
+                        self.client.add_event_handler(c, e)
+                    else:
+                        self.client.remove_event_handler(c, e)
 
     def register_handlers(self):
         for c, e in self.handlers:
@@ -176,8 +205,8 @@ class Manager:
         await self.delayed_respond(event, f"```{text}```", delay=10)
 
 
-def setup_handlers(client: TelegramClient):
-    m = Manager(client)
+def setup_handlers(user_key: str, client: TelegramClient):
+    m = Manager(user_key, client)
 
     m.add_handler(handlers.handle_help, NewMessage(cmd='', outgoing=True, parser=m.parser))
 
@@ -292,4 +321,5 @@ def setup_handlers(client: TelegramClient):
         p.add_argument('-s', dest='size', type=int, default=20, help='number of lines to return')
 
     m.register_handlers()
+    m.update_statuses_from_store()
     return m
