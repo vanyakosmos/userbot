@@ -66,12 +66,25 @@ class Manager:
         self.client = client
         self.handlers = []
         self.handlers_statuses = OrderedDict()
+        self.turn_on = True
 
         self.parser = ArgumentParser(prog='USERBOT', conflict_handler='resolve')
         self.parser.add_argument('-h', '--help', action=HelpAction)
         self.subparsers = self.parser.add_subparsers()
 
-        atexit.register(self.save_statuses)
+        atexit.register(self.save_data)
+
+    @property
+    def redis_key_data(self):
+        return f"data:{self.user_key}"
+
+    def save_data(self):
+        save_json(
+            self.redis_key_data, {
+                'turn_on': self.turn_on,
+                'statuses': self.handlers_statuses,
+            }
+        )
 
     def set_status(self, name: str, status: bool):
         if name:
@@ -80,6 +93,32 @@ class Manager:
     def add_handler(self, callback, event: NewMessage):
         logger.debug(f"registered callback {callback.__name__!r}")
         self.handlers.append((callback, event))
+
+    def update_from_store(self):
+        data = load_json(self.redis_key_data)
+        if not data:
+            logger.info("no preserved data")
+            return
+        logger.info("loading preserved data from store...")
+        self.update_turn_on_from_store(data.get('turn_on', True))
+        self.update_statuses_from_store(data.get('statuses'))
+
+    def update_turn_on_from_store(self, value):
+        self.turn_on = value
+        if not self.turn_on:
+            self.remove_handlers()
+
+    def update_statuses_from_store(self, statuses: dict):
+        """Assuming that all handlers are registered right now"""
+        if not statuses:
+            return
+        handlers_map = {e.name: (c, e) for c, e in self.handlers}
+        for name, value in statuses.items():
+            if name in self.handlers_statuses and name in handlers_map:
+                self.handlers_statuses[name] = value
+                c, e = handlers_map[name]
+                if not value:
+                    self.client.remove_event_handler(c, e)
 
     @contextmanager
     def add_command(
@@ -123,54 +162,39 @@ class Manager:
         else:
             self.client.add_event_handler(callback, message_matcher)
 
-    @property
-    def status_redis_key(self):
-        return f"status:{self.user_key}"
-
-    def save_statuses(self):
-        logger.info("saving statuses...")
-        save_json(self.status_redis_key, self.handlers_statuses)
-
-    def update_statuses_from_store(self):
-        logger.info("loading statuses from store...")
-        statuses: dict = load_json(self.status_redis_key)
-        if not statuses:
-            return
-        for name, value in statuses.items():
-            if name in self.handlers_statuses:
-                self.handlers_statuses[name] = value
-                for c, e in self.handlers:
-                    if e.name != name:
-                        continue
-                    if value:
-                        self.client.add_event_handler(c, e)
-                    else:
-                        self.client.remove_event_handler(c, e)
-
-    def register_handlers(self):
+    def register_handlers(self, update_statuses=False):
+        """
+        :param update_statuses: if True then register all available handlers,
+            otherwise register handler only if it has positive status
+        """
         for c, e in self.handlers:
-            self.client.add_event_handler(c, e)
-            self.set_status(e.name, True)
+            if update_statuses:
+                logger.debug(f"adding event handler and updating status {(c.__name__, e.name)}")
+                self.client.add_event_handler(c, e)
+                self.set_status(e.name, True)
+            elif self.handlers_statuses.get(e.name):
+                logger.debug(f"adding event handler {(c.__name__, e.name)}")
+                self.client.add_event_handler(c, e)
 
-    def remove_handlers(self):
+    def remove_handlers(self, update_statuses=False):
         for c, e in self.handlers:
             self.client.remove_event_handler(c, e)
-            self.set_status(e.name, False)
+            if update_statuses:
+                self.set_status(e.name, False)
 
-    async def delayed_respond(self, event, respond, delay=3):
+    async def respond_with_timeout(self, event, respond, delay=3):
         _, msg = await asyncio.gather(event.delete(), event.respond(respond))
         await asyncio.sleep(delay)
         await msg.delete()
 
     async def handle_toggle(self, event: Event):
-        first = self.handlers[0]
-        toggle = first in self.client.list_event_handlers()
-        if toggle:
-            self.remove_handlers()
-        else:
+        self.turn_on = not self.turn_on
+        if self.turn_on:
             self.register_handlers()
-        toggle_text = '❌ off' if toggle else '✅ on'
-        await self.delayed_respond(event, f"{USERBOT_NAME} is {toggle_text}")
+        else:
+            self.remove_handlers()
+        toggle_text = '✅ on' if self.turn_on else '❌ off'
+        await self.respond_with_timeout(event, f"{USERBOT_NAME} is {toggle_text}")
         raise StopPropagation()
 
     async def handle_toggle_command(self, event: Event, adding: bool):
@@ -184,11 +208,11 @@ class Manager:
                     self.client.remove_event_handler(c, e)
                     respond = f"❌ handler {handler_name!r} was stopped"
                 self.set_status(e.name, adding)
-                await self.delayed_respond(event, respond)
+                await self.respond_with_timeout(event, respond)
                 break
         else:
             respond = f"😡 no handler with name {handler_name!r} was found"
-            await self.delayed_respond(event, respond)
+            await self.respond_with_timeout(event, respond)
         raise StopPropagation()
 
     async def handle_stop_command(self, event: Event):
@@ -198,11 +222,13 @@ class Manager:
         await self.handle_toggle_command(event, adding=True)
 
     async def handle_status(self, event: Event):
-        text = '\n'.join([
+        onf = 'on' if self.turn_on else 'off'
+        text = f"bot is turned {onf}\n\n"
+        text += '\n'.join([
             f"{'✅' if status else '❌'} {handler}"
             for handler, status in self.handlers_statuses.items()
         ])
-        await self.delayed_respond(event, f"```{text}```", delay=10)
+        await self.respond_with_timeout(event, f"```{text}```", delay=10)
 
 
 def setup_handlers(user_key: str, client: TelegramClient):
@@ -320,6 +346,6 @@ def setup_handlers(user_key: str, client: TelegramClient):
     with m.add_command('logs', "show bot logs", handlers.handle_logs) as p:
         p.add_argument('-s', dest='size', type=int, default=20, help='number of lines to return')
 
-    m.register_handlers()
-    m.update_statuses_from_store()
+    m.register_handlers(update_statuses=True)
+    m.update_from_store()
     return m
